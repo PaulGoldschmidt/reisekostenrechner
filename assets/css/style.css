@@ -1,0 +1,575 @@
+:root {
+  --hintergrund: #fafaf7;
+  --flaeche: #ffffff;
+  --text: #16181d;
+  --gedaempft: #5d6370;
+  --linie: #e3e3dd;
+  --linie-stark: #c9c9c1;
+  --akzent: #2f5bd3;
+  --akzent-dunkel: #2147ad;
+  --akzent-hell: #edf1fc;
+  --warnung: #8a4b00;
+  --warnung-hell: #fff6e5;
+  --radius: 12px;
+  --schrift: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color-scheme: light;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--hintergrund);
+  color: var(--text);
+  font: 16px/1.55 var(--schrift);
+  font-variant-numeric: tabular-nums;
+}
+
+a {
+  color: var(--akzent);
+  text-underline-offset: 2px;
+}
+
+a:hover {
+  color: var(--akzent-dunkel);
+}
+
+:focus-visible {
+  outline: 2px solid var(--akzent);
+  outline-offset: 2px;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.sprung {
+  position: absolute;
+  left: -9999px;
+}
+
+.sprung:focus {
+  left: 16px;
+  top: 16px;
+  z-index: 10;
+  background: var(--flaeche);
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+.seite {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 40px 20px 48px;
+}
+
+/* Kopf */
+
+.kopf {
+  margin-bottom: 32px;
+}
+
+.marke {
+  margin: 0 0 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--akzent);
+}
+
+h1 {
+  margin: 0 0 10px;
+  font-size: clamp(1.6rem, 4vw, 2.1rem);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.einleitung {
+  margin: 0 0 16px;
+  color: var(--gedaempft);
+  font-size: 1.05rem;
+}
+
+.inoffiziell {
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px solid var(--linie);
+  border-left: 3px solid var(--warnung);
+  border-radius: 8px;
+  background: var(--flaeche);
+  font-size: 0.92rem;
+}
+
+/* Eingabe */
+
+.eingabe {
+  display: grid;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+legend,
+.feld > label {
+  display: block;
+  margin-bottom: 6px;
+  padding: 0;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.optional {
+  margin-left: 6px;
+  font-weight: 400;
+  color: var(--gedaempft);
+  font-size: 0.85rem;
+}
+
+.hilfe {
+  margin: 6px 0 0;
+  color: var(--gedaempft);
+  font-size: 0.85rem;
+}
+
+.umschalter {
+  display: inline-grid;
+  grid-auto-flow: column;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--linie);
+  border-radius: 999px;
+  background: var(--flaeche);
+}
+
+.umschalter label {
+  position: relative;
+  cursor: pointer;
+}
+
+.umschalter input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.umschalter span {
+  display: block;
+  padding: 7px 16px;
+  border-radius: 999px;
+  font-size: 0.95rem;
+  color: var(--gedaempft);
+  transition: background 0.15s, color 0.15s;
+}
+
+.umschalter input:checked + span {
+  background: var(--akzent);
+  color: #fff;
+}
+
+.umschalter input:focus-visible + span {
+  outline: 2px solid var(--akzent);
+  outline-offset: 2px;
+}
+
+.orte,
+.daten {
+  display: grid;
+  gap: 16px;
+}
+
+@media (min-width: 640px) {
+  .orte,
+  .daten {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+input[type="text"],
+input[type="date"] {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--linie-stark);
+  border-radius: 10px;
+  background: var(--flaeche);
+  color: var(--text);
+  font: inherit;
+}
+
+input[type="text"]:focus,
+input[type="date"]:focus {
+  border-color: var(--akzent);
+  outline: 3px solid var(--akzent-hell);
+  outline-offset: 0;
+}
+
+input::placeholder {
+  color: #9aa0ab;
+}
+
+/* Ortsvorschläge */
+
+.combo {
+  position: relative;
+}
+
+.vorschlaege {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(22, 24, 29, 0.1);
+}
+
+.vorschlag {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 10px;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.vorschlag[aria-selected="true"],
+.vorschlag:hover {
+  background: var(--akzent-hell);
+}
+
+.vorschlag-name {
+  font-weight: 600;
+}
+
+.vorschlag-zusatz {
+  font-size: 0.85rem;
+  color: var(--gedaempft);
+}
+
+.vorschlag-meldung {
+  padding: 8px 10px;
+  color: var(--gedaempft);
+  font-size: 0.9rem;
+}
+
+/* Karte */
+
+.kartenbereich {
+  margin-bottom: 28px;
+}
+
+.karte {
+  height: 340px;
+  border: 1px solid var(--linie);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: #eef0ec;
+}
+
+.karte-fehlt {
+  display: grid;
+  place-items: center;
+  color: var(--gedaempft);
+}
+
+.marker {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 3px solid var(--akzent);
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+.marker-ziel {
+  background: var(--akzent);
+  border-color: #fff;
+}
+
+.strecke {
+  margin: 10px 0 0;
+  min-height: 1.55em;
+  color: var(--gedaempft);
+  font-size: 0.95rem;
+}
+
+.strecke strong {
+  color: var(--text);
+}
+
+.link-knopf {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--akzent);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Ergebnis */
+
+.ergebnis {
+  margin-bottom: 36px;
+}
+
+.ergebnis:empty {
+  display: none;
+}
+
+.ergebnis-titel,
+.hinweise h2 {
+  margin: 0 0 14px;
+  font-size: 1.2rem;
+}
+
+.posten-raster {
+  display: grid;
+  gap: 12px;
+}
+
+@media (min-width: 640px) {
+  .posten-raster {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.posten {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 18px;
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-radius: var(--radius);
+}
+
+.posten-titel {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--gedaempft);
+}
+
+.posten-betrag {
+  margin: 0;
+  font-size: 1.85rem;
+  font-weight: 650;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.posten-vorsatz {
+  margin-right: 6px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--gedaempft);
+  letter-spacing: 0;
+}
+
+.posten-neben {
+  margin: -2px 0 0;
+  font-size: 0.9rem;
+  color: var(--gedaempft);
+}
+
+.posten-text {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--gedaempft);
+}
+
+.posten-gedimmt .posten-betrag {
+  color: #9aa0ab;
+}
+
+.zaehler {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0;
+}
+
+.zaehler-label {
+  margin-right: auto;
+  font-size: 0.9rem;
+}
+
+.zaehler-knopf {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--linie-stark);
+  border-radius: 50%;
+  background: var(--flaeche);
+  color: var(--text);
+  font: inherit;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.zaehler-knopf:hover:not(:disabled) {
+  border-color: var(--akzent);
+  color: var(--akzent);
+}
+
+.zaehler-knopf:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.zaehler-wert {
+  min-width: 1.5em;
+  text-align: center;
+  font-weight: 600;
+}
+
+.schalter {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 4px 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--akzent-hell);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.schalter input {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin: 1px 0 0;
+  accent-color: var(--akzent);
+}
+
+.meldung {
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--akzent-hell);
+  font-size: 0.92rem;
+}
+
+.meldung-warnung {
+  background: var(--warnung-hell);
+  color: var(--warnung);
+}
+
+.satz-zeile {
+  margin: 0 0 12px;
+  color: var(--gedaempft);
+}
+
+.satz-zeile strong {
+  color: var(--text);
+}
+
+.fussnote {
+  margin: 12px 0 0;
+  font-size: 0.875rem;
+  color: var(--gedaempft);
+}
+
+/* Hinweise */
+
+.hinweise {
+  padding-top: 28px;
+  border-top: 1px solid var(--linie);
+}
+
+.hinweise ul {
+  margin: 0;
+  padding-left: 1.2em;
+}
+
+.hinweise li {
+  margin-bottom: 8px;
+  color: #3a3f4a;
+  font-size: 0.95rem;
+}
+
+.hinweise li::marker {
+  color: var(--linie-stark);
+}
+
+.tabelle {
+  width: 100%;
+  margin-top: 20px;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.tabelle caption {
+  margin-bottom: 8px;
+  text-align: left;
+  font-weight: 600;
+}
+
+.tabelle th,
+.tabelle td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--linie);
+  vertical-align: top;
+}
+
+.tabelle th {
+  color: var(--gedaempft);
+  font-weight: 500;
+}
+
+.tabelle td:last-child,
+.tabelle th:last-child {
+  white-space: nowrap;
+}
+
+/* Fuß */
+
+.fuss {
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 1px solid var(--linie);
+  color: var(--gedaempft);
+  font-size: 0.85rem;
+}
+
+.fuss p {
+  margin: 0 0 10px;
+}
+
+.fuss a {
+  color: inherit;
+}
+
+.rechtliches {
+  display: flex;
+  gap: 20px;
+  margin-top: 16px;
+}
+
+.rechtliches a {
+  color: var(--text);
+}
