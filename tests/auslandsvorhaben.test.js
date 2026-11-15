@@ -4,7 +4,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { berechneAuslandsvorhaben } from '../assets/js/rules/auslandsvorhaben.js';
-import { werteZeitraumAus, zeitraumUngueltig } from '../assets/js/rules/zeitraum.js';
+import { werteZeitraumAus, zeitraumUngueltig, zeitraumNoetig } from '../assets/js/rules/zeitraum.js';
 import { bestimmeGebiet } from '../assets/js/geo/gebiet.js';
 
 const ORTE = {
@@ -42,6 +42,23 @@ test('Zeitraum: An- und Abreisetag zählen mit', () => {
   assert.equal(werteZeitraumAus('2026-02-30', '2026-03-05'), null);
   assert.equal(zeitraumUngueltig('2026-07-08', '2026-07-01'), true);
   assert.equal(zeitraumUngueltig('', '2026-07-01'), false);
+});
+
+test('Zeitraum wird nur gebraucht, wenn er die Berechnung beeinflusst', () => {
+  const v = (extra) => zeitraumNoetig({ anlass: 'veranstaltung', bahnUeber12h: false, ...extra });
+  // Auslandsvorhaben: immer
+  assert.equal(zeitraumNoetig({ anlass: 'ausland', ausland: null, routenArt: null, bahnUeber12h: false }), true);
+  // Veranstaltung: Orte unbekannt oder Inland
+  assert.equal(v({ ausland: null, routenArt: null }), false);
+  assert.equal(v({ ausland: false, routenArt: 'strasse', bahnUeber12h: true }), false);
+  // Ausland mit Straßenverbindung: nur wenn die Bahn länger als 12 h braucht
+  assert.equal(v({ ausland: true, routenArt: 'strasse' }), false);
+  assert.equal(v({ ausland: true, routenArt: 'strasse', bahnUeber12h: true }), true);
+  // Ausland ohne Straßenverbindung: Flug ist die einzige Option
+  assert.equal(v({ ausland: true, routenArt: 'keine' }), true);
+  // Route noch nicht berechnet oder fehlgeschlagen
+  assert.equal(v({ ausland: true, routenArt: null, bahnUeber12h: true }), false);
+  assert.equal(v({ ausland: true, routenArt: 'fehler', bahnUeber12h: true }), false);
 });
 
 test('Zeitraum: mehr als ein Jahr', () => {

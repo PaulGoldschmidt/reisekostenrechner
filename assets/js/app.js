@@ -7,7 +7,7 @@ import { berechneRoute } from './geo/route.js';
 import { bestimmeGebiet } from './geo/gebiet.js';
 import { berechneVeranstaltung } from './rules/veranstaltung.js';
 import { berechneAuslandsvorhaben } from './rules/auslandsvorhaben.js';
-import { werteZeitraumAus, zeitraumUngueltig } from './rules/zeitraum.js';
+import { werteZeitraumAus, zeitraumUngueltig, zeitraumNoetig } from './rules/zeitraum.js';
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -22,6 +22,7 @@ const el = {
   zielHilfe: $('#ziel-hilfe'),
   von: $('#von'),
   bis: $('#bis'),
+  zeitraum: $('#zeitraum'),
   zeitraumOptional: $('#zeitraum-optional'),
   zeitraumHilfe: $('#zeitraum-hilfe'),
   karte: $('#karte'),
@@ -35,7 +36,7 @@ const TEXTE = {
     zielLabel: 'Veranstaltungsort',
     zielPlatzhalter: 'z. B. Hattingen',
     zielHilfe: 'Bei einem Bustransfer der Studienstiftung den Abfahrtsort des Busses eingeben.',
-    zeitraumHilfe: 'Nur für Flüge ins Ausland relevant. Auslandsaufenthalte direkt davor oder danach zählen mit.',
+    zeitraumHilfe: 'Für den Flugzuschuss gilt eine Mindestdauer vor Ort. Auslandsaufenthalte direkt davor oder danach zählen mit.',
   },
   ausland: {
     anlassHilfe: 'Studium, Forschung, Praktikum, Sprachkurs und andere geförderte Vorhaben im Ausland.',
@@ -164,7 +165,7 @@ function zeichneStrecke(startG, zielG) {
   }
 }
 
-function zeichneErgebnis(startG, zielG) {
+function zeichneErgebnis(startG, zielG, mitZeitraum) {
   const { start, ziel, route, anlass } = zustand;
   const aktionen = {
     onMitfahrende: (n) => {
@@ -176,10 +177,11 @@ function zeichneErgebnis(startG, zielG) {
       zeichne();
     },
   };
-  const zeitraum = werteZeitraumAus(zustand.von, zustand.bis);
+  // Ein ausgeblendeter Zeitraum fließt nicht in die Berechnung ein.
+  const zeitraum = mitZeitraum ? werteZeitraumAus(zustand.von, zustand.bis) : null;
   const kopf = h('h2', { class: 'ergebnis-titel' }, 'Zuschuss je Verkehrsmittel');
   const meldungen = [];
-  if (zeitraumUngueltig(zustand.von, zustand.bis)) {
+  if (mitZeitraum && zeitraumUngueltig(zustand.von, zustand.bis)) {
     meldungen.push(hinweis('Zeitraum prüfen.', 'Das Ende liegt vor dem Beginn.', 'warnung'));
   }
 
@@ -243,9 +245,18 @@ function zeichne() {
   zeichneAnlass();
   zeichneStrecke(startG, zielG);
 
+  // Zeitraum nur zeigen, wenn er die Berechnung beeinflusst
+  const mitZeitraum = zeitraumNoetig({
+    anlass: zustand.anlass,
+    ausland: startG && zielG ? !(startG.inland && zielG.inland) : null,
+    routenArt: zustand.routeLaedt || !zustand.route ? null : zustand.route.art,
+    bahnUeber12h: zustand.bahnUeber12h,
+  });
+  el.zeitraum.hidden = !mitZeitraum;
+
   // Fokus über das Neuzeichnen hinweg erhalten
   const fokus = document.activeElement && el.ergebnis.contains(document.activeElement) ? document.activeElement.dataset : null;
-  el.ergebnis.replaceChildren(...zeichneErgebnis(startG, zielG));
+  el.ergebnis.replaceChildren(...zeichneErgebnis(startG, zielG, mitZeitraum));
   if (fokus && fokus.fokus) {
     let ziel2 = el.ergebnis.querySelector(`[data-fokus="${fokus.fokus}"]`);
     if (ziel2 && ziel2.disabled && fokus.fokusAlt) ziel2 = el.ergebnis.querySelector(`[data-fokus="${fokus.fokusAlt}"]`);
