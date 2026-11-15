@@ -15,7 +15,7 @@ const VALHALLA_MAX_LUFTLINIE_KM = 1400;
 // Liegt ein Ort weiter als das vom nächsten Straßenpunkt entfernt, gilt er
 // als nicht per Straße erreichbar.
 const MAX_FANGRADIUS_M = 10000;
-const ZEITLIMIT_MS = 20000;
+const ZEITLIMIT_MS = 12000;
 const ERDRADIUS_KM = 6371.0088;
 
 const rad = (g) => (g * Math.PI) / 180;
