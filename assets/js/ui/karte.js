@@ -1,7 +1,11 @@
-// Karte mit MapLibre GL JS und Kacheln von OpenFreeMap.
+// Karte mit MapLibre GL JS und Kacheln von OpenFreeMap im eigenen dunklen Farbschema.
 
-const STIL_URL = 'https://tiles.openfreemap.org/styles/positron';
-const START = { center: [10.4, 51.1], zoom: 4.6 };
+import { faerbeStil, FARBEN, stadtpunkt } from './kartenstil.js';
+
+const STIL_URL = 'https://tiles.openfreemap.org/styles/dark';
+// Startansicht: 50,707 Grad Nord, 7,149 Grad Ost
+const START = { center: [7.149, 50.707], zoom: 10 };
+const DESKTOP = '(min-width: 1024px)';
 
 const DEUTSCH = {
   'Map.Title': 'Karte',
@@ -37,7 +41,6 @@ export function erstelleKarte(container) {
 
   const karte = new maplibregl.Map({
     container,
-    style: STIL_URL,
     ...START,
     attributionControl: { compact: true },
     cooperativeGestures: true,
@@ -46,6 +49,11 @@ export function erstelleKarte(container) {
     locale: DEUTSCH,
   });
   karte.touchZoomRotate.disableRotation();
+  karte.setStyle(STIL_URL, { transformStyle: (_vorher, stil) => faerbeStil(stil) });
+  // Der Sprite des Stils enthält keinen Punkt für Städte
+  karte.on('styleimagemissing', (e) => {
+    if (e.id === 'circle-11' && !karte.hasImage(e.id)) karte.addImage(e.id, stadtpunkt(11));
+  });
   karte.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
 
   const marker = {
@@ -57,16 +65,7 @@ export function erstelleKarte(container) {
   let wartend = null;
 
   karte.on('load', () => {
-    // Ortsnamen auf Deutsch, sofern vorhanden
-    for (const ebene of karte.getStyle().layers) {
-      if (ebene.type !== 'symbol') continue;
-      const feld = karte.getLayoutProperty(ebene.id, 'text-field');
-      if (feld && JSON.stringify(feld).includes('name')) {
-        karte.setLayoutProperty(ebene.id, 'text-field', ['coalesce', ['get', 'name:de'], ['get', 'name:latin'], ['get', 'name']]);
-      }
-    }
-
-    const akzent = getComputedStyle(document.documentElement).getPropertyValue('--akzent').trim() || '#2f5bd3';
+    const akzent = FARBEN.akzent;
     karte.addSource('route', { type: 'geojson', data: LEER });
     karte.addLayer({
       id: 'route-rand',
@@ -74,7 +73,7 @@ export function erstelleKarte(container) {
       source: 'route',
       filter: ['==', ['get', 'art'], 'strasse'],
       layout: { 'line-join': 'round', 'line-cap': 'round' },
-      paint: { 'line-color': '#ffffff', 'line-width': 7 },
+      paint: { 'line-color': FARBEN.hintergrund, 'line-width': 9 },
     });
     karte.addLayer({
       id: 'route-linie',
@@ -126,7 +125,11 @@ export function erstelleKarte(container) {
         (b, p) => b.extend(p),
         new maplibregl.LngLatBounds(route.geometrie[0], route.geometrie[0]),
       );
-      karte.fitBounds(grenzen, { padding: 48, maxZoom: 11, duration: 600 });
+      // Auf dem Desktop liegt oben links die Streckenangabe über der Karte
+      const abstand = window.matchMedia(DESKTOP).matches
+        ? { top: 110, right: 70, bottom: 60, left: 60 }
+        : { top: 36, right: 48, bottom: 36, left: 36 };
+      karte.fitBounds(grenzen, { padding: abstand, maxZoom: 11, duration: 600 });
     } else {
       quelle.setData(LEER);
       const ort = ziel || start;
