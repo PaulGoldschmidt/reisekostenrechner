@@ -24,5 +24,8 @@ export const km = (wert) => `${ZAHL.format(Math.round(wert))} km`;
 
 export const zahl = (wert) => ZAHL.format(wert);
 
-/** "1 Tag" oder "8 Tage". */
+/** Nominativ und Akkusativ: "1 Tag" oder "8 Tage". */
 export const tage = (n) => `${zahl(n)} ${n === 1 ? 'Tag' : 'Tage'}`;
+
+/** Dativ, etwa nach "von", "ab" oder "mit": "1 Tag" oder "8 Tagen". */
+export const tagen = (n) => `${zahl(n)} ${n === 1 ? 'Tag' : 'Tagen'}`;

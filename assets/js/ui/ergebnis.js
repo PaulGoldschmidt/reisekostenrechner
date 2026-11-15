@@ -1,7 +1,7 @@
 // Darstellung der Ergebnisse als Karten je Verkehrsmittel.
 
 import { h } from './dom.js';
-import { euro, satz, km, tage } from './format.js';
+import { euro, satz, km, tage, tagen } from './format.js';
 import { VERANSTALTUNG } from '../rules/veranstaltung.js';
 import { AUSLANDSVORHABEN } from '../rules/auslandsvorhaben.js';
 
@@ -153,7 +153,7 @@ export function zeigeVeranstaltung(r, z, aktionen) {
           onAendern: aktionen.onBahnUeber12h,
         })
       : null;
-    const dauerText = `Pro Veranstaltungstag höchstens ${km(V.flug.kmProTag)}: Für ${km(r.kmEinfach)} ist ein Aufenthalt von mindestens ${tage(f.mindestTage)} nötig.`;
+    const dauerText = `Pro Veranstaltungstag höchstens ${km(V.flug.kmProTag)}: Für ${km(r.kmEinfach)} ist ein Aufenthalt von mindestens ${tagen(f.mindestTage)} nötig.`;
     const zahlt = f.status === 'moeglich' || f.status === 'aufenthalt-unbekannt';
     const texte = [];
     if (f.status === 'bahn-unter-12h') {
@@ -164,7 +164,7 @@ export function zeigeVeranstaltung(r, z, aktionen) {
     } else if (f.status === 'aufenthalt-unbekannt') {
       texte.push(`${dauerText} Mit einem Zeitraum oben prüft der Rechner das.`);
     } else {
-      texte.push(`${dauerText} Mit ${tage(f.aufenthaltTage)} ist das erfüllt.`);
+      texte.push(`${dauerText} Mit ${tagen(f.aufenthaltTage)} ist das erfüllt.`);
     }
     if (!f.bahnPflicht) texte.push('Zwischen den Orten gibt es keine Bahn- oder Busverbindung.');
     texte.push(f.innereuropaeisch ? 'Pauschale für innereuropäische Flüge, für Hin- und Rückreise zusammen.' : 'Pauschale für außereuropäische Flüge, für Hin- und Rückreise zusammen.');
@@ -262,9 +262,9 @@ export function zeigeAuslandsvorhaben(r, ziel, z, aktionen) {
     } else if (f.status === 'bahn-unter-12h') {
       texte.push(`Flüge werden nur bezuschusst, wenn Bahn oder Fernbus länger als ${A.europaFlugMindestBahnStunden} Stunden bräuchten oder das Ziel außerhalb des Interrail- und Fernbus-Raums liegt. Sonst entfällt der Zuschuss.`);
     } else if (f.status === 'dauer-unbekannt') {
-      texte.push(`Nur bei einem Vorhaben ab ${tage(f.mindestTage)}. Mit einem Zeitraum oben prüft der Rechner das.`);
+      texte.push(`Nur bei einem Vorhaben ab ${tagen(f.mindestTage)}. Mit einem Zeitraum oben prüft der Rechner das.`);
     } else {
-      texte.push(`Mindestdauer von ${tage(f.mindestTage)} erfüllt.${dauerAngabe}`);
+      texte.push(`Mindestdauer von ${tagen(f.mindestTage)} erfüllt.${dauerAngabe}`);
     }
     texte.push('Deutlich reduzierte Pauschale für Flüge innerhalb Europas.');
     flug = posten({
@@ -285,11 +285,11 @@ export function zeigeAuslandsvorhaben(r, ziel, z, aktionen) {
     const texte = [];
     const regionText = r.regionName ? `für ${r.regionName}` : 'für diese Region';
     if (f.status === 'keine-foerderung') {
-      texte.push(`Bei Anreise mit dem Flugzeug gilt ${regionText} eine Mindestdauer von ${tage(f.mindestTage)}, sonst gibt es keine Auslandsförderung.${dauerAngabe}`);
+      texte.push(`Bei Anreise mit dem Flugzeug gilt ${regionText} eine Mindestdauer von ${tagen(f.mindestTage)}, sonst gibt es keine Auslandsförderung.${dauerAngabe}`);
     } else if (f.status === 'dauer-unbekannt') {
       texte.push(`Mindestdauer ${regionText}: ${tage(f.mindestTage)}. Mit einem Zeitraum oben prüft der Rechner das.`);
     } else {
-      texte.push(`Mindestdauer ${regionText} von ${tage(f.mindestTage)} erfüllt.${dauerAngabe}`);
+      texte.push(`Mindestdauer ${regionText} von ${tagen(f.mindestTage)} erfüllt.${dauerAngabe}`);
     }
     texte.push(`Voller Zuschuss nur bei nachhaltiger Flugreise: kein innereuropäischer Zubringerflug (z. B. Rail&Fly nutzen), so wenige Zwischenstopps wie möglich und ${CO2}-Kompensation. Sonst wird der Zuschuss um 50 % gekürzt.`);
     flug = posten({
