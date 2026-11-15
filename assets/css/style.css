@@ -287,6 +287,12 @@ input::placeholder {
   background: #eef0ec;
 }
 
+@media (max-width: 639px) {
+  .karte {
+    height: 260px;
+  }
+}
+
 .karte-fehlt {
   display: grid;
   place-items: center;

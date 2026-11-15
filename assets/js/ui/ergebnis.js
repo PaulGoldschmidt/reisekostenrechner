@@ -7,6 +7,9 @@ import { AUSLANDSVORHABEN } from '../rules/auslandsvorhaben.js';
 
 const CO2 = 'CO₂';
 
+const OHNE_LANDWEG = () =>
+  hinweis('Keine Straßenverbindung.', 'Bahn, Bus, Auto und Fahrrad kommen nicht in Frage, bezuschusst werden kann nur ein Flug.');
+
 function posten({ titel, betrag, vorsatz = null, neben = null, texte = [], steuerung = null, gedimmt = false }) {
   return h(
     'article',
@@ -95,13 +98,13 @@ export function zeigeVeranstaltung(r, z, aktionen) {
     );
   }
 
-  const ohneLandweg = (titel) =>
-    posten({ titel, betrag: 'Nicht möglich', gedimmt: true, texte: ['Zwischen den beiden Orten gibt es keine Straßenverbindung.'] });
+  if (!r.landweg) elemente.push(OHNE_LANDWEG());
 
   // Bahn/Bus
-  let bahn;
-  if (!r.bahn.verfuegbar) bahn = ohneLandweg('Bahn/Bus');
-  else if (r.unterMindestdistanz) bahn = posten({ titel: 'Bahn/Bus', betrag: euro(0), gedimmt: true });
+  let bahn = null;
+  if (!r.bahn.verfuegbar) {
+    // keine Karte, siehe Hinweis oben
+  } else if (r.unterMindestdistanz) bahn = posten({ titel: 'Bahn/Bus', betrag: euro(0), gedimmt: true });
   else {
     bahn = posten({
       titel: 'Bahn/Bus',
@@ -119,9 +122,8 @@ export function zeigeVeranstaltung(r, z, aktionen) {
   }
 
   // Auto
-  let auto;
-  if (!r.auto.verfuegbar) auto = ohneLandweg('Auto');
-  else {
+  let auto = null;
+  if (r.auto.verfuegbar) {
     auto = posten({
       titel: 'Auto',
       vorsatz: r.unterMindestdistanz ? null : 'bis zu',
@@ -166,7 +168,6 @@ export function zeigeVeranstaltung(r, z, aktionen) {
     } else {
       texte.push(`${dauerText} Mit ${tagen(f.aufenthaltTage)} ist das erfüllt.`);
     }
-    if (!f.bahnPflicht) texte.push('Zwischen den Orten gibt es keine Bahn- oder Busverbindung.');
     texte.push(f.innereuropaeisch ? 'Pauschale für innereuropäische Flüge, für Hin- und Rückreise zusammen.' : 'Pauschale für außereuropäische Flüge, für Hin- und Rückreise zusammen.');
     flug = posten({
       titel: 'Flugzeug',
@@ -180,9 +181,10 @@ export function zeigeVeranstaltung(r, z, aktionen) {
   }
 
   // Fahrrad / zu Fuß
-  let rad;
-  if (!r.rad.verfuegbar) rad = ohneLandweg('Fahrrad oder zu Fuß');
-  else if (r.unterMindestdistanz) rad = posten({ titel: 'Fahrrad oder zu Fuß', betrag: euro(0), gedimmt: true });
+  let rad = null;
+  if (!r.rad.verfuegbar) {
+    // keine Karte, siehe Hinweis oben
+  } else if (r.unterMindestdistanz) rad = posten({ titel: 'Fahrrad oder zu Fuß', betrag: euro(0), gedimmt: true });
   else if (r.rad.ausland) {
     rad = posten({
       titel: 'Fahrrad oder zu Fuß',
@@ -243,12 +245,8 @@ export function zeigeAuslandsvorhaben(r, ziel, z, aktionen) {
         neben: r.auszahlung === 'gesamt' ? null : teileText(r.land.teile),
         texte: ['Voller Reisekostenzuschuss bei Anreise ohne Flugzeug.'],
       })
-    : posten({
-        titel: 'Bahn, Bus, Auto oder Fahrrad',
-        betrag: 'Nicht möglich',
-        gedimmt: true,
-        texte: ['Zwischen den beiden Orten gibt es keine Straßenverbindung.'],
-      });
+    : null;
+  if (!land) elemente.push(OHNE_LANDWEG());
 
   // Flugzeug
   const f = r.flug;
