@@ -34,6 +34,8 @@ am besten zu den Beispielen im Merkblatt passt (München nach Hamburg: 793 km st
 Die Ortssuche läuft über [Photon](https://photon.komoot.io/), die Karte über
 [MapLibre GL JS](https://maplibre.org/) mit Kacheln von [OpenFreeMap](https://openfreemap.org/).
 Kartendaten © OpenStreetMap-Mitwirkende.
+Die Karte ist im eigenen dunklen Farbschema eingefärbt (`assets/js/ui/kartenstil.js`).
+Schrift: [Bricolage Grotesque](https://github.com/ateliertriay/bricolage) unter der SIL Open Font License, lokal eingebunden.
 
 ## Offene Annahmen
 
