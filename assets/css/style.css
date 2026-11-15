@@ -1,18 +1,43 @@
+@font-face {
+  font-family: "Bricolage Grotesque";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 800;
+  src: url("../fonts/bricolage-grotesque/bricolage-grotesque-latin-ext-opsz-normal.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: "Bricolage Grotesque";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 800;
+  src: url("../fonts/bricolage-grotesque/bricolage-grotesque-latin-opsz-normal.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 :root {
-  --hintergrund: #fafaf7;
-  --flaeche: #ffffff;
-  --text: #16181d;
-  --gedaempft: #5d6370;
-  --linie: #e3e3dd;
-  --linie-stark: #c9c9c1;
-  --akzent: #2f5bd3;
-  --akzent-dunkel: #2147ad;
-  --akzent-hell: #edf1fc;
-  --warnung: #8a4b00;
-  --warnung-hell: #fff6e5;
-  --radius: 12px;
-  --schrift: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  color-scheme: light;
+  /* Farben, auch von der Karte genutzt (siehe karte.js) */
+  --hintergrund: #0e1013;
+  --flaeche: #15181d;
+  --flaeche-2: #1b1f25;
+  --text: #ece9e1;
+  --text-2: #c7c4bd;
+  --gedaempft: #9299a5;
+  --gedaempft-2: #5f6570;
+  --linie: #242930;
+  --linie-stark: #353b44;
+  --akzent: #c8f169;
+  --akzent-text: #12150a;
+  --akzent-hell: rgba(200, 241, 105, 0.1);
+  --warnung: #ffc670;
+  --warnung-hell: rgba(255, 198, 112, 0.1);
+  --radius: 14px;
+  --schrift: "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --links: 100%;
+  color-scheme: dark;
 }
 
 *,
@@ -30,16 +55,20 @@ body {
   background: var(--hintergrund);
   color: var(--text);
   font: 16px/1.55 var(--schrift);
+  font-optical-sizing: auto;
   font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
 }
 
 a {
-  color: var(--akzent);
-  text-underline-offset: 2px;
+  color: var(--text);
+  text-decoration-color: var(--akzent);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
 }
 
 a:hover {
-  color: var(--akzent-dunkel);
+  color: var(--akzent);
 }
 
 :focus-visible {
@@ -49,6 +78,11 @@ a:hover {
 
 [hidden] {
   display: none !important;
+}
+
+::selection {
+  background: var(--akzent);
+  color: var(--akzent-text);
 }
 
 .sprung {
@@ -78,25 +112,38 @@ a:hover {
 }
 
 .marke {
-  margin: 0 0 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 14px;
   font-size: 0.85rem;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--akzent);
 }
 
+.marke::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--akzent);
+  box-shadow: 0 0 0 4px var(--akzent-hell);
+}
+
 h1 {
-  margin: 0 0 10px;
-  font-size: clamp(1.6rem, 4vw, 2.1rem);
-  line-height: 1.2;
-  letter-spacing: -0.01em;
+  margin: 0 0 12px;
+  font-size: clamp(1.9rem, 4.2vw, 2.6rem);
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
 }
 
 .einleitung {
-  margin: 0 0 16px;
+  margin: 0 0 18px;
   color: var(--gedaempft);
-  font-size: 1.05rem;
+  font-size: 1.08rem;
 }
 
 .inoffiziell {
@@ -104,9 +151,14 @@ h1 {
   padding: 10px 14px;
   border: 1px solid var(--linie);
   border-left: 3px solid var(--warnung);
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--flaeche);
+  color: var(--text-2);
   font-size: 0.92rem;
+}
+
+.inoffiziell strong {
+  color: var(--text);
 }
 
 /* Eingabe */
@@ -174,13 +226,19 @@ legend,
   padding: 7px 16px;
   border-radius: 999px;
   font-size: 0.95rem;
+  font-weight: 500;
   color: var(--gedaempft);
   transition: background 0.15s, color 0.15s;
 }
 
+.umschalter input:hover + span {
+  color: var(--text);
+}
+
 .umschalter input:checked + span {
   background: var(--akzent);
-  color: #fff;
+  color: var(--akzent-text);
+  font-weight: 600;
 }
 
 .umschalter input:focus-visible + span {
@@ -204,13 +262,18 @@ legend,
 input[type="text"],
 input[type="date"] {
   width: 100%;
-  min-height: 44px;
-  padding: 10px 12px;
+  min-height: 46px;
+  padding: 10px 13px;
   border: 1px solid var(--linie-stark);
-  border-radius: 10px;
-  background: var(--flaeche);
+  border-radius: 11px;
+  background: var(--flaeche-2);
   color: var(--text);
   font: inherit;
+}
+
+input[type="text"]:hover,
+input[type="date"]:hover {
+  border-color: #454c57;
 }
 
 input[type="text"]:focus,
@@ -221,7 +284,7 @@ input[type="date"]:focus {
 }
 
 input::placeholder {
-  color: #9aa0ab;
+  color: var(--gedaempft-2);
 }
 
 /* Ortsvorschläge */
@@ -233,23 +296,23 @@ input::placeholder {
 .vorschlaege {
   position: absolute;
   z-index: 5;
-  top: calc(100% + 4px);
+  top: calc(100% + 6px);
   left: 0;
   right: 0;
   margin: 0;
   padding: 4px;
   list-style: none;
-  background: var(--flaeche);
-  border: 1px solid var(--linie);
-  border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(22, 24, 29, 0.1);
+  background: var(--flaeche-2);
+  border: 1px solid var(--linie-stark);
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
 }
 
 .vorschlag {
   display: flex;
   flex-direction: column;
   padding: 8px 10px;
-  border-radius: 7px;
+  border-radius: 8px;
   cursor: pointer;
 }
 
@@ -276,21 +339,16 @@ input::placeholder {
 /* Karte */
 
 .kartenbereich {
+  position: relative;
   margin-bottom: 28px;
 }
 
 .karte {
-  height: 340px;
+  height: 300px;
   border: 1px solid var(--linie);
   border-radius: var(--radius);
   overflow: hidden;
-  background: #eef0ec;
-}
-
-@media (max-width: 639px) {
-  .karte {
-    height: 260px;
-  }
+  background: #111418;
 }
 
 .karte-fehlt {
@@ -300,17 +358,18 @@ input::placeholder {
 }
 
 .marker {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   border: 3px solid var(--akzent);
-  background: #fff;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  background: var(--hintergrund);
+  box-shadow: 0 0 0 4px rgba(14, 16, 19, 0.6);
 }
 
 .marker-ziel {
   background: var(--akzent);
-  border-color: #fff;
+  border-color: var(--hintergrund);
+  box-shadow: 0 0 0 3px var(--akzent), 0 0 0 8px rgba(200, 241, 105, 0.18);
 }
 
 .strecke {
@@ -334,6 +393,45 @@ input::placeholder {
   cursor: pointer;
 }
 
+/* Kartensteuerung von MapLibre an das dunkle Design anpassen */
+
+.maplibregl-ctrl-group {
+  background: var(--flaeche-2) !important;
+  border: 1px solid var(--linie-stark);
+  box-shadow: none !important;
+}
+
+.maplibregl-ctrl-group button + button {
+  border-top-color: var(--linie-stark) !important;
+}
+
+.maplibregl-ctrl-group button .maplibregl-ctrl-icon {
+  filter: invert(1) brightness(0.9);
+}
+
+.maplibregl-ctrl-group button:not(:disabled):hover {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+.maplibregl-ctrl.maplibregl-ctrl-attrib {
+  background: rgba(14, 16, 19, 0.8);
+  color: var(--gedaempft);
+}
+
+.maplibregl-ctrl-attrib a {
+  color: var(--gedaempft);
+}
+
+.maplibregl-ctrl-attrib-button {
+  filter: invert(1);
+  background-color: transparent !important;
+}
+
+.maplibregl-cooperative-gesture-screen {
+  background: rgba(14, 16, 19, 0.75);
+  font-family: var(--schrift);
+}
+
 /* Ergebnis */
 
 .ergebnis {
@@ -347,7 +445,9 @@ input::placeholder {
 .ergebnis-titel,
 .hinweise h2 {
   margin: 0 0 14px;
-  font-size: 1.2rem;
+  font-size: 1.3rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
 }
 
 .posten-raster {
@@ -380,10 +480,10 @@ input::placeholder {
 
 .posten-betrag {
   margin: 0;
-  font-size: 1.85rem;
-  font-weight: 650;
-  line-height: 1.2;
-  letter-spacing: -0.01em;
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
 }
 
 .posten-vorsatz {
@@ -397,7 +497,7 @@ input::placeholder {
 .posten-neben {
   margin: -2px 0 0;
   font-size: 0.9rem;
-  color: var(--gedaempft);
+  color: var(--text-2);
 }
 
 .posten-text {
@@ -407,7 +507,7 @@ input::placeholder {
 }
 
 .posten-gedimmt .posten-betrag {
-  color: #9aa0ab;
+  color: var(--gedaempft-2);
 }
 
 .zaehler {
@@ -427,7 +527,7 @@ input::placeholder {
   height: 34px;
   border: 1px solid var(--linie-stark);
   border-radius: 50%;
-  background: var(--flaeche);
+  background: var(--flaeche-2);
   color: var(--text);
   font: inherit;
   font-size: 1.1rem;
@@ -441,7 +541,7 @@ input::placeholder {
 }
 
 .zaehler-knopf:disabled {
-  opacity: 0.4;
+  opacity: 0.35;
   cursor: default;
 }
 
@@ -457,8 +557,10 @@ input::placeholder {
   align-items: flex-start;
   margin: 4px 0;
   padding: 10px 12px;
-  border-radius: 8px;
-  background: var(--akzent-hell);
+  border: 1px solid var(--linie);
+  border-radius: 10px;
+  background: var(--flaeche-2);
+  color: var(--text-2);
   font-size: 0.875rem;
   cursor: pointer;
 }
@@ -474,13 +576,22 @@ input::placeholder {
 .meldung {
   margin: 0 0 12px;
   padding: 10px 14px;
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--akzent-hell);
+  color: var(--text-2);
   font-size: 0.92rem;
+}
+
+.meldung strong {
+  color: var(--text);
 }
 
 .meldung-warnung {
   background: var(--warnung-hell);
+  color: var(--warnung);
+}
+
+.meldung-warnung strong {
   color: var(--warnung);
 }
 
@@ -513,12 +624,12 @@ input::placeholder {
 
 .hinweise li {
   margin-bottom: 8px;
-  color: #3a3f4a;
+  color: var(--text-2);
   font-size: 0.95rem;
 }
 
 .hinweise li::marker {
-  color: var(--linie-stark);
+  color: var(--akzent);
 }
 
 .tabelle {
@@ -540,6 +651,7 @@ input::placeholder {
   text-align: left;
   border-bottom: 1px solid var(--linie);
   vertical-align: top;
+  color: var(--text-2);
 }
 
 .tabelle th {
@@ -578,4 +690,63 @@ input::placeholder {
 
 .rechtliches a {
   color: var(--text);
+}
+
+/* Telefone: Karte etwas flacher */
+
+@media (max-width: 639px) {
+  .karte {
+    height: 260px;
+  }
+}
+
+/* Desktop: Eingaben und Ergebnisse links, Karte rechts über die volle Höhe */
+
+@media (min-width: 1024px) {
+  :root {
+    --links: clamp(500px, 45vw, 700px);
+  }
+
+  .seite {
+    width: var(--links);
+    max-width: none;
+    margin: 0;
+    padding: 48px 40px 40px;
+  }
+
+  .kartenbereich {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: var(--links);
+    margin: 0;
+  }
+
+  .karte {
+    height: 100%;
+    border: 0;
+    border-left: 1px solid var(--linie);
+    border-radius: 0;
+  }
+
+  .strecke {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    max-width: min(560px, calc(100% - 100px));
+    margin: 0;
+    padding: 10px 14px;
+    border: 1px solid var(--linie-stark);
+    border-radius: 12px;
+    background: rgba(14, 16, 19, 0.82);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    color: var(--text-2);
+    pointer-events: auto;
+  }
+
+  .strecke:empty {
+    display: none;
+  }
 }
