@@ -1,0 +1,10 @@
+{
+  "name": "reisekostenrechner",
+  "private": true,
+  "type": "module",
+  "description": "Inoffizieller Rechner für Fahrt- und Reisekostenzuschüsse der Studienstiftung des deutschen Volkes",
+  "scripts": {
+    "test": "node --test \"tests/*.test.js\"",
+    "start": "python3 -m http.server 8000"
+  }
+}
