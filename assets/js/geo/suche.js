@@ -44,14 +44,15 @@ export function adresseAusPhoton(p, lon, lat) {
   if (!p.countrycode) return null;
   const strasse = p.type === 'street' ? p.name : [p.street, p.housenumber].filter(Boolean).join(' ');
   if (!strasse) return null;
-  const ort = [p.postcode, p.city || p.locality || p.district || p.county].filter(Boolean).join(' ');
+  const stadt = p.city || p.locality || p.district || p.county;
+  const ort = [p.postcode, stadt].filter(Boolean).join(' ');
   const land = p.countrycode.toUpperCase();
   const zusatz = [ort, land === 'DE' ? null : p.country].filter(Boolean).join(', ');
   return {
     art: 'adresse',
     titel: strasse,
     zusatz,
-    name: strasse,
+    name: [strasse, stadt].filter(Boolean).join(', '),
     label: [strasse, zusatz].filter(Boolean).join(', '),
     lat,
     lon,

@@ -23,6 +23,7 @@ test('Adresse aus Photon mit Postleitzahl, ohne Gebäudenamen', () => {
   const v = adresseAusPhoton({ type: 'house', name: 'ESA: Flügel Ost', street: 'Edmund-Siemers-Allee', housenumber: '1', postcode: '20146', city: 'Hamburg', countrycode: 'DE', country: 'Deutschland' }, 9.98, 53.56);
   assert.equal(v.titel, 'Edmund-Siemers-Allee 1');
   assert.equal(v.label, 'Edmund-Siemers-Allee 1, 20146 Hamburg');
+  assert.equal(v.name, 'Edmund-Siemers-Allee 1, Hamburg');
   assert.equal(v.art, 'adresse');
 });
 
