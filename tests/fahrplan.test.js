@@ -19,16 +19,19 @@ test('Schnellste Verbindung ignoriert reine Fußwege', () => {
       { id: 'zu-fuss', duration: 3600, legs: [{ mode: 'WALK' }] },
     ],
   };
-  assert.deepEqual(schnellsteAus(antwort), { stunden: 7.1, id: 'schnell' });
+  assert.equal(schnellsteAus(antwort).id, 'schnell');
   assert.equal(schnellsteAus({ itineraries: [] }), null);
   assert.equal(schnellsteAus({}), null);
 });
 
-test('Link auf die Verbindung bei Transitous', () => {
-  assert.equal(
-    ansichtLink('Ab/c+d=', 'Leipzig', 'Brüssel'),
-    'https://api.transitous.org/?itineraryId=Ab%2Fc%2Bd%3D&fromName=Leipzig&toName=Br%C3%BCssel',
-  );
+test('Link auf die Verbindung bei Transitous, mit Suche als Rückfall', () => {
+  const anfrage = { fromPlace: '51.3,12.4', toPlace: '50.9,4.4', time: '2026-11-25T06:00:00.000Z' };
+  const link = new URL(ansichtLink({ id: 'Ab/c+d=' }, anfrage, 'Leipzig', 'Brüssel'));
+  assert.equal(link.origin + link.pathname, 'https://api.transitous.org/');
+  assert.equal(link.searchParams.get('itineraryId'), 'Ab/c+d=');
+  assert.equal(link.searchParams.get('fromPlace'), '51.3,12.4');
+  assert.equal(link.searchParams.get('toName'), 'Brüssel');
+  assert.equal(link.searchParams.get('time'), '2026-11-25T06:00:00.000Z');
 });
 
 test('Interrail- und Fernbus-Raum', () => {

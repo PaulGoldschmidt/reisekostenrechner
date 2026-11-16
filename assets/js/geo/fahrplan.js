@@ -9,8 +9,8 @@
 import { mitZeitlimit } from './route.js';
 
 const TRANSITOUS_URL = 'https://api.transitous.org/api/v1/plan';
-// Weboberfläche von Transitous, öffnet eine Verbindung über ihre itineraryId
-const ANSICHT_URL = 'https://api.transitous.org/';
+// Weboberfläche von Transitous auf demselben Server
+const ANSICHT_URL = new URL('/', TRANSITOUS_URL).href;
 // Suchfenster ab 6 Uhr UTC: Abfahrten am Vormittag (7 bis 13 Uhr deutscher Zeit)
 const SUCHFENSTER_S = 6 * 3600;
 const ZEITLIMIT_MS = 30000;
@@ -24,20 +24,25 @@ export function stichtag(jetzt = new Date()) {
 
 /** Schnellste Verbindung mit Bahn oder Bus aus einer Antwort von Transitous, null wenn es keine gibt. */
 export function schnellsteAus(antwort) {
-  const wege = (antwort.itineraries || []).filter((weg) =>
-    (weg.legs || []).some((abschnitt) => abschnitt.mode && abschnitt.mode !== 'WALK'),
-  );
-  if (!wege.length) return null;
-  const schnellster = wege.reduce((a, b) => (b.duration < a.duration ? b : a));
-  return { stunden: schnellster.duration / 3600, id: schnellster.id };
+  return (antwort.itineraries || [])
+    .filter((weg) => (weg.legs || []).some((abschnitt) => abschnitt.mode && abschnitt.mode !== 'WALK'))
+    .reduce((a, b) => (!a || b.duration < a.duration ? b : a), null);
 }
 
-/** Link auf die Verbindung in der Weboberfläche von Transitous. */
-export function ansichtLink(id, vonName, nachName) {
+/** Suchanfrage von a nach b, gemeinsam für die Abfrage und den Link auf die Weboberfläche. */
+function suche(a, b) {
+  return { fromPlace: `${a.lat},${a.lon}`, toPlace: `${b.lat},${b.lon}`, time: stichtag().toISOString() };
+}
+
+/**
+ * Link auf die Verbindung in der Weboberfläche von Transitous. Die itineraryId ist laut
+ * MOTIS experimentell; Start, Ziel und Zeit stehen mit im Link, damit die Seite notfalls
+ * wenigstens dieselbe Suche zeigt.
+ */
+export function ansichtLink(weg, anfrage, vonName, nachName) {
   const url = new URL(ANSICHT_URL);
-  url.searchParams.set('itineraryId', id);
-  if (vonName) url.searchParams.set('fromName', vonName);
-  if (nachName) url.searchParams.set('toName', nachName);
+  const parameter = { ...anfrage, fromName: vonName, toName: nachName, itineraryId: weg.id };
+  for (const [name, wert] of Object.entries(parameter)) if (wert) url.searchParams.set(name, wert);
   return url.href;
 }
 
@@ -48,17 +53,16 @@ export function ansichtLink(id, vonName, nachName) {
  * @returns {Promise<{stunden: number, link: string}|null>} schnellste Verbindung oder null
  */
 export async function schnellsteVerbindung(a, b, { signal } = {}) {
+  const anfrage = suche(a, b);
   const url = new URL(TRANSITOUS_URL);
-  url.searchParams.set('fromPlace', `${a.lat},${a.lon}`);
-  url.searchParams.set('toPlace', `${b.lat},${b.lon}`);
-  url.searchParams.set('time', stichtag().toISOString());
+  for (const [name, wert] of Object.entries(anfrage)) url.searchParams.set(name, wert);
   url.searchParams.set('searchWindow', String(SUCHFENSTER_S));
   const zeit = mitZeitlimit(signal, ZEITLIMIT_MS);
   try {
     const antwort = await fetch(url, { signal: zeit.signal });
     if (!antwort.ok) throw new Error(`Transitous: ${antwort.status}`);
-    const schnellste = schnellsteAus(await antwort.json());
-    return schnellste && { stunden: schnellste.stunden, link: ansichtLink(schnellste.id, a.name, b.name) };
+    const weg = schnellsteAus(await antwort.json());
+    return weg && { stunden: weg.duration / 3600, link: ansichtLink(weg, anfrage, a.name, b.name) };
   } finally {
     zeit.fertig();
   }
