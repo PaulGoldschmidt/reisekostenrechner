@@ -73,17 +73,17 @@ function ortZuText(ort) {
   return [ort.lat.toFixed(5), ort.lon.toFixed(5), ort.land, ort.label].join(',');
 }
 
-function textZuOrt(text) {
+// Der Kurzname (z. B. "TUM" oder "Jägerstraße 22, Berlin") steht in einem eigenen Parameter,
+// wenn er nicht einfach der Anfang der Beschriftung ist. Ältere Links ohne ihn bleiben gültig.
+const ersterTeil = (label) => label.split(',')[0].trim();
+
+function textZuOrt(text, name) {
   if (!text) return null;
   const teile = text.split(',');
   if (teile.length < 4) return null;
   const [lat, lon, land] = teile;
   const label = teile.slice(3).join(',').trim();
-  // Kurzname für die Streckenangabe: bei Adressen mit Ort, z. B. "Jägerstraße 22, Berlin"
-  const [erster, zweiter = ''] = label.split(',').map((t) => t.trim());
-  const plzOrt = /^\d{4,5} (.+)$/.exec(zweiter);
-  const name = plzOrt ? `${erster}, ${plzOrt[1]}` : erster;
-  const ort = { lat: Number(lat), lon: Number(lon), land: String(land).toUpperCase(), label, name };
+  const ort = { lat: Number(lat), lon: Number(lon), land: String(land).toUpperCase(), label, name: name || ersterTeil(label) };
   if (!Number.isFinite(ort.lat) || !Number.isFinite(ort.lon) || !/^[A-Z]{2}$/.test(ort.land) || !label) return null;
   return ort;
 }
@@ -91,8 +91,12 @@ function textZuOrt(text) {
 function schreibeUrl() {
   const p = new URLSearchParams();
   if (zustand.anlass === 'ausland') p.set('anlass', 'ausland');
-  if (zustand.start) p.set('start', ortZuText(zustand.start));
-  if (zustand.ziel) p.set('ziel', ortZuText(zustand.ziel));
+  for (const art of ['start', 'ziel']) {
+    const ort = zustand[art];
+    if (!ort) continue;
+    p.set(art, ortZuText(ort));
+    if (ort.name !== ersterTeil(ort.label)) p.set(`${art}name`, ort.name);
+  }
   if (zustand.von) p.set('von', zustand.von);
   if (zustand.bis) p.set('bis', zustand.bis);
   if (zustand.mitfahrende) p.set('mitfahrende', String(zustand.mitfahrende));
@@ -104,8 +108,8 @@ function schreibeUrl() {
 function leseUrl() {
   const p = new URLSearchParams(location.search);
   zustand.anlass = p.get('anlass') === 'ausland' ? 'ausland' : 'veranstaltung';
-  zustand.start = textZuOrt(p.get('start'));
-  zustand.ziel = textZuOrt(p.get('ziel'));
+  zustand.start = textZuOrt(p.get('start'), p.get('startname'));
+  zustand.ziel = textZuOrt(p.get('ziel'), p.get('zielname'));
   const datum = (w) => (/^\d{4}-\d{2}-\d{2}$/.test(w || '') ? w : '');
   zustand.von = datum(p.get('von'));
   zustand.bis = datum(p.get('bis'));
