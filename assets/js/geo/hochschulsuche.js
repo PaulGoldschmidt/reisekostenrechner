@@ -43,12 +43,14 @@ export function sucheHochschulen(verzeichnis, anfrage, max = 4) {
     if (!passt) continue;
 
     let punkte = 0;
-    if (v.orte.includes(q)) punkte += 50;
+    const ortTreffer = v.orte.includes(q);
+    if (ortTreffer) punkte += 50;
     else if (v.orte.some((o) => o.startsWith(q))) punkte += 30;
     if (v.kurz && v.kurz === q) punkte += 60;
     else if (v.kurz && v.kurz.startsWith(q)) punkte += 35;
     if (v.aliase.includes(q)) punkte += 45;
-    if (v.name.startsWith(q)) punkte += 20;
+    // Bei der Suche nach einer Stadt entscheiden Größe und HRK, nicht der Namensanfang
+    if (!ortTreffer && v.name.startsWith(q)) punkte += 20;
     if (v.h.hrk) punkte += 15;
     punkte += Math.log10(1 + (v.h.studierende || 0)) * 4;
     treffer.push({ h: v.h, punkte });

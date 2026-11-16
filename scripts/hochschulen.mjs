@@ -162,7 +162,8 @@ export function bewerte(hochschule, treffer, nahe) {
 // Nur offizielle Kurznamen (Wikidata P1813). Aliase enthalten auch historische Namen
 // wie "KMU Leipzig" und dienen deshalb nur der Suche.
 function waehleKurzname(e) {
-  const kandidaten = [...e.kurz].filter((k) => k.length <= 28 && k !== e.name);
+  // Mindestens drei Zeichen: "TU" oder "HM" allein sind nicht eindeutig
+  const kandidaten = [...e.kurz].filter((k) => k.length >= 3 && k.length <= 28 && k !== e.name);
   kandidaten.sort((a, b) => a.length - b.length);
   return kandidaten[0] || null;
 }
@@ -181,6 +182,11 @@ export function ohneUntereinheiten(liste) {
     if (UNTEREINHEIT.test(h.name)) return false;
     return !namen.some((n) => n !== h.name && h.name.startsWith(n) && /^[\s,-]/.test(h.name.slice(n.length)));
   });
+}
+
+/** Ein Eintrag pro Zeile: kompakt und mit gut lesbaren Unterschieden in Git. */
+export function alsModul(liste) {
+  return `export const HOCHSCHULEN = [\n${liste.map((h) => JSON.stringify(h)).join(',\n')}\n];\n`;
 }
 
 async function main() {
@@ -250,7 +256,12 @@ async function main() {
     if (i % 25 === 0) console.log(`  [${i}/${liste.length}] ${e.name}: ${anschrift}`);
   }
 
-  const bereinigt = ohneUntereinheiten(ergebnis);
+  // Einträge außerhalb Deutschlands (falsch eingetragene Länder in Wikidata) entfernen
+  const [west, sued, ost, nord] = DEUTSCHLAND;
+  const inDeutschland = ergebnis.filter(
+    (h) => h.anschrift && h.lon >= west && h.lon <= ost && h.lat >= sued && h.lat <= nord,
+  );
+  const bereinigt = ohneUntereinheiten(inDeutschland);
   console.log(`${ergebnis.length - bereinigt.length} Untereinheiten entfernt`);
   ergebnis.length = 0;
   ergebnis.push(...bereinigt);
@@ -269,7 +280,7 @@ async function main() {
     '//   Open Database License (ODbL) 1.0, https://www.openstreetmap.org/copyright',
     '',
   ].join('\n');
-  writeFileSync(ZIEL, `${kopf}export const HOCHSCHULEN = ${JSON.stringify(ergebnis, null, 1)};\n`);
+  writeFileSync(ZIEL, `${kopf}${alsModul(ergebnis)}`);
   console.log(`${ergebnis.length} Hochschulen nach ${ZIEL} geschrieben`);
 }
 
