@@ -272,6 +272,13 @@ input::placeholder {
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
 }
 
+/* Hochschulnamen sind lang: Liste darf breiter als das Feld sein */
+#start-liste {
+  right: auto;
+  width: max(100%, 440px);
+  max-width: calc(100vw - 40px);
+}
+
 .vorschlag {
   display: flex;
   flex-direction: column;
@@ -292,6 +299,21 @@ input::placeholder {
 .vorschlag-zusatz {
   font-size: 0.85rem;
   color: var(--gedaempft);
+}
+
+.vorschlag-gruppe {
+  padding: 8px 10px 4px;
+  color: var(--gedaempft-2);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.vorschlag-gruppe:not(:first-child) {
+  margin-top: 4px;
+  border-top: 1px solid var(--linie);
+  padding-top: 10px;
 }
 
 .vorschlag-meldung {

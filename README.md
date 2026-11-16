@@ -32,11 +32,22 @@ Kartendaten © OpenStreetMap-Mitwirkende.
 Die Karte ist im eigenen dunklen Farbschema eingefärbt (`assets/js/ui/kartenstil.js`).
 Schrift: [Bricolage Grotesque](https://github.com/ateliertriay/bricolage) unter der SIL Open Font License, lokal eingebunden.
 
+## Hochschulverzeichnis
+
+Beim Studienort schlägt der Rechner zuerst passende Hochschulen vor, etwa für „Hamburg“,
+„Uni Bonn“ oder „TUM“. Eine genaue Adresse kann zusätzlich eingegeben werden, ist aber optional.
+
+Das Verzeichnis in `assets/js/data/hochschulen.js` wird mit `npm run hochschulen` erzeugt:
+
+- [Wikidata](https://www.wikidata.org/) (CC0): Namen, Kurznamen, Koordinaten, Studierendenzahlen, HRK-Mitgliedschaft
+- OpenStreetMap über Photon: Anschriften, © OpenStreetMap-Mitwirkende, [ODbL](https://www.openstreetmap.org/copyright)
+
 ## Entwicklung
 
 ```sh
 npm test     # Tests mit dem Test-Runner von Node.js (ab Version 22)
 npm start    # lokaler Server auf http://localhost:8000
+npm run hochschulen   # Hochschulverzeichnis neu erzeugen (dauert einige Minuten)
 ```
 
 Bei jedem Push auf `main` laufen die Tests, danach wird die Seite über GitHub Actions auf

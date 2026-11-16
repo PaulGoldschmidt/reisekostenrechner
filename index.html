@@ -43,10 +43,10 @@
             <label for="start">Studienort</label>
             <div class="combo">
               <input id="start" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false"
-                     aria-controls="start-liste" aria-describedby="start-hilfe" placeholder="z. B. Leipzig" spellcheck="false">
+                     aria-controls="start-liste" aria-describedby="start-hilfe" placeholder="z. B. Uni Leipzig oder Leipzig" spellcheck="false">
               <ul id="start-liste" class="vorschlaege" role="listbox" aria-label="Vorschläge für den Studienort" hidden></ul>
             </div>
-            <p class="hilfe" id="start-hilfe">Hochschulort, wie bei der Studienstiftung hinterlegt.</p>
+            <p class="hilfe" id="start-hilfe">Hochschule oder Hochschulort. Eine genaue Adresse ist optional.</p>
           </div>
 
           <div class="feld">
@@ -56,7 +56,7 @@
                      aria-controls="ziel-liste" aria-describedby="ziel-hilfe" placeholder="z. B. Hattingen" spellcheck="false">
               <ul id="ziel-liste" class="vorschlaege" role="listbox" aria-label="Vorschläge für das Ziel" hidden></ul>
             </div>
-            <p class="hilfe" id="ziel-hilfe">Bei einem Bustransfer der Studienstiftung den Abfahrtsort des Busses eingeben.</p>
+            <p class="hilfe" id="ziel-hilfe">Ort oder, falls bekannt, die genaue Adresse. Bei einem Bustransfer der Studienstiftung den Abfahrtsort des Busses eingeben.</p>
           </div>
         </div>
 
@@ -87,7 +87,7 @@
         <h2 id="hinweise-titel">Gut zu wissen</h2>
 
         <ul data-anlass="veranstaltung">
-          <li>Grundlage ist die Pkw-Strecke zwischen Hochschul- und Veranstaltungsort, auch bei Anreise mit der Bahn. Der Rechner nutzt dafür die schnellste Route eines Routenplaners. Die Studienstiftung kann andere Kilometer ansetzen.</li>
+          <li>Grundlage ist die Pkw-Strecke zwischen Hochschul- und Veranstaltungsort, auch bei Anreise mit der Bahn. Der Rechner nutzt dafür die schnellste Route eines Routenplaners. Mit den genauen Adressen von Hochschule und Veranstaltungsort wird das Ergebnis genauer, die Studienstiftung kann aber trotzdem andere Kilometer ansetzen.</li>
           <li>Erstattet werden nur tatsächlich angefallene Kosten. Waren die Tickets günstiger als der Zuschuss, muss das angegeben werden.</li>
           <li>Dauertickets wie Semesterticket, Deutschlandticket oder Interrail-Monatspass werden nicht bezuschusst. Interrail-Pässe für mehrere Tage können anteilig bezuschusst werden.</li>
           <li>Für Reisen im Inland gibt es ein vergünstigtes <a href="https://www.studienstiftung.de/anreise/">Veranstaltungsticket der Deutschen Bahn</a>. Für alle unter 27 kann der Super Sparpreis Young noch günstiger sein.</li>
@@ -137,7 +137,7 @@
       </p>
       <p class="quellen">
         Kartendaten © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap-Mitwirkende</a>, Karte von <a href="https://openfreemap.org/">OpenFreeMap</a>,
-        Ortssuche mit <a href="https://photon.komoot.io/">Photon</a>, Routen mit Valhalla und OSRM auf Servern der <a href="https://www.fossgis.de/">FOSSGIS</a>.
+        Ortssuche mit <a href="https://photon.komoot.io/">Photon</a>, Hochschulverzeichnis aus <a href="https://www.wikidata.org/">Wikidata</a> und OpenStreetMap, Routen mit Valhalla und OSRM auf Servern der <a href="https://www.fossgis.de/">FOSSGIS</a>.
       </p>
       <nav class="rechtliches" aria-label="Rechtliches">
         <a href="https://paul-goldschmidt.de/imprint/">Impressum</a>

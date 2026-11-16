@@ -6,6 +6,7 @@ import { konfetti } from './ui/konfetti.js';
 import { km } from './ui/format.js';
 import { berechneRoute } from './geo/route.js';
 import { bestimmeGebiet } from './geo/gebiet.js';
+import { bereiteVor, sucheHochschulen, alsVorschlag } from './geo/hochschulsuche.js';
 import { berechneVeranstaltung } from './rules/veranstaltung.js';
 import { berechneAuslandsvorhaben } from './rules/auslandsvorhaben.js';
 import { werteZeitraumAus, zeitraumUngueltig, zeitraumNoetig } from './rules/zeitraum.js';
@@ -36,14 +37,14 @@ const TEXTE = {
     anlassHilfe: 'Seminare, Akademien und andere Bildungsveranstaltungen der Studienstiftung.',
     zielLabel: 'Veranstaltungsort',
     zielPlatzhalter: 'z. B. Hattingen',
-    zielHilfe: 'Bei einem Bustransfer der Studienstiftung den Abfahrtsort des Busses eingeben.',
+    zielHilfe: 'Ort oder, falls bekannt, die genaue Adresse. Bei einem Bustransfer der Studienstiftung den Abfahrtsort des Busses eingeben.',
     zeitraumHilfe: 'Für den Flugzuschuss gilt eine Mindestdauer vor Ort. Auslandsaufenthalte direkt davor oder danach zählen mit.',
   },
   ausland: {
     anlassHilfe: 'Studium, Forschung, Praktikum, Sprachkurs und andere geförderte Vorhaben im Ausland.',
     zielLabel: 'Zielort im Ausland',
     zielPlatzhalter: 'z. B. Lyon',
-    zielHilfe: 'Maßgeblich für den Zuschuss ist das Zielland.',
+    zielHilfe: 'Ort oder, falls bekannt, die genaue Adresse. Maßgeblich für den Zuschuss ist das Zielland.',
     zeitraumHilfe: 'Entscheidet über die Mindestdauer bei Flugreisen und darüber, ob Hin- und Rückreise getrennt gezahlt werden.',
   },
 };
@@ -77,7 +78,11 @@ function textZuOrt(text) {
   if (teile.length < 4) return null;
   const [lat, lon, land] = teile;
   const label = teile.slice(3).join(',').trim();
-  const ort = { lat: Number(lat), lon: Number(lon), land: String(land).toUpperCase(), label, name: label.split(',')[0] };
+  // Kurzname für die Streckenangabe: bei Adressen mit Ort, z. B. "Jägerstraße 22, Berlin"
+  const [erster, zweiter = ''] = label.split(',').map((t) => t.trim());
+  const plzOrt = /^\d{4,5} (.+)$/.exec(zweiter);
+  const name = plzOrt ? `${erster}, ${plzOrt[1]}` : erster;
+  const ort = { lat: Number(lat), lon: Number(lon), land: String(land).toUpperCase(), label, name };
   if (!Number.isFinite(ort.lat) || !Number.isFinite(ort.lon) || !/^[A-Z]{2}$/.test(ort.land) || !label) return null;
   return ort;
 }
@@ -293,9 +298,22 @@ function zeichne() {
   feiere(hoechster);
 }
 
+// Hochschulverzeichnis erst laden, wenn es gebraucht wird
+
+let verzeichnis = null;
+function ladeVerzeichnis() {
+  verzeichnis ??= import('./data/hochschulen.js')
+    .then((modul) => bereiteVor(modul.HOCHSCHULEN))
+    .catch(() => []);
+  return verzeichnis;
+}
+el.start.addEventListener('focus', ladeVerzeichnis, { once: true });
+
 // Ereignisse
 
 const startFeld = new Ortsfeld(el.start, el.startListe, {
+  lokal: async (text) => sucheHochschulen(await ladeVerzeichnis(), text, 4).map(alsVorschlag),
+  lokalTitel: 'Hochschulen',
   onWahl: (ort) => {
     zustand.start = ort;
     ladeRoute();
