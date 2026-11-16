@@ -3,6 +3,7 @@ import { erstelleKarte } from './ui/karte.js';
 import { zeigeVeranstaltung, zeigeAuslandsvorhaben, hinweis } from './ui/ergebnis.js';
 import { h } from './ui/dom.js';
 import { konfetti } from './ui/konfetti.js';
+import { zeigeAdressTipp, versteckeClippy } from './ui/clippy.js';
 import { km } from './ui/format.js';
 import { berechneRoute } from './geo/route.js';
 import { bestimmeGebiet } from './geo/gebiet.js';
@@ -331,8 +332,12 @@ const zielFeld = new Ortsfeld(el.ziel, el.zielListe, {
     zustand.ziel = ort;
     ladeRoute();
     zeichne();
+    // Nur ein Ort gewählt: Clippy weist auf die genaue Adresse hin
+    if (ort.art === 'ort') zeigeAdressTipp(el.ziel);
+    else versteckeClippy();
   },
   onLeeren: () => {
+    versteckeClippy();
     zustand.ziel = null;
     ladeRoute();
     zeichne();

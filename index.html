@@ -10,6 +10,16 @@
   <link rel="stylesheet" href="assets/vendor/maplibre-gl/maplibre-gl.css">
   <link rel="stylesheet" href="assets/css/style.css">
   <script src="assets/vendor/maplibre-gl/maplibre-gl.js" defer></script>
+  <!-- Prüfsummen für Clippy (clippyjs 0.1.0 von jsDelivr, erst bei Bedarf geladen) -->
+  <script type="importmap">
+  {
+    "integrity": {
+      "https://cdn.jsdelivr.net/npm/clippyjs@0.1.0/dist/index.mjs": "sha384-BxZZLnapD5QsvKGkAwD3wiUuO8YatjTKyr0OPPoSAybm36CNuhhvGgUgCIeNEKda",
+      "https://cdn.jsdelivr.net/npm/clippyjs@0.1.0/dist/agents/clippy/agent.mjs": "sha384-pQPVWt5tc+QDNtDckNLFNABlmV5swvRIxlsrHvQCSsYdacz6s0YYgRZxYKy95mjv",
+      "https://cdn.jsdelivr.net/npm/clippyjs@0.1.0/dist/agents/clippy/map.mjs": "sha384-/x2OcruEFVPIhygEBLJt7E9TaH58kEc4ScuXhZ77op99jYJJE0DW/NYR/gppQJRe"
+    }
+  }
+  </script>
   <script type="module" src="assets/js/app.js"></script>
 </head>
 <body>
@@ -138,6 +148,7 @@
       <p class="quellen">
         Kartendaten © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap-Mitwirkende</a>, Karte von <a href="https://openfreemap.org/">OpenFreeMap</a>,
         Ortssuche mit <a href="https://photon.komoot.io/">Photon</a>, Hochschulverzeichnis aus <a href="https://www.wikidata.org/">Wikidata</a> und OpenStreetMap, Routen mit Valhalla und OSRM auf Servern der <a href="https://www.fossgis.de/">FOSSGIS</a>.
+        Clippy ist eine Figur von Microsoft, eingebunden mit <a href="https://github.com/pi0/clippyjs">clippyjs</a> über jsDelivr.
       </p>
       <nav class="rechtliches" aria-label="Rechtliches">
         <a href="https://paul-goldschmidt.de/imprint/">Impressum</a>
