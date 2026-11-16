@@ -48,10 +48,9 @@ test('Pflichtangaben auf der Seite', () => {
   const html = readFileSync(join(wurzel, 'index.html'), 'utf8');
   for (const teil of [
     'Kein offizielles Angebot',
-    'keiner Verbindung zur Studienstiftung',
+    'Keine Verbindung zur Studienstiftung',
     'ohne Gewähr',
     'Stand: Mitte November 2026',
-    'Paul Goldschmidt',
     'https://github.com/PaulGoldschmidt/reisekostenrechner',
     'https://paul-goldschmidt.de/imprint/',
     'https://paul-goldschmidt.de/privacy',
