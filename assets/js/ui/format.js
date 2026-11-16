@@ -15,15 +15,14 @@ const SATZ = new Intl.NumberFormat('de-DE', {
 const ZAHL = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 0 });
 
 /**
- * Betrag in vollen Euro, ab 50 Cent aufwärts gerundet: 254.8 wird zu "255 €", 867.5 zu "868 €".
- * Gerechnet wird weiter in Cent, nur die Anzeige ist gerundet.
+ * Whole euros, 50 cents round up: 254.8 becomes "255 €", 867.5 becomes "868 €".
+ * Only the display is rounded, calculations keep the cents.
  */
 export const euro = (betrag) => EURO_GANZ.format(Math.round(betrag));
 
-/** Kilometersatz, z. B. 0.125 wird zu "0,125 €". */
+/** Rate per km, e.g. 0.125 becomes "0,125 €". */
 export const satz = (betrag) => SATZ.format(betrag);
 
-/** 1273.4 wird zu "1.273 km". */
 export const km = (wert) => `${ZAHL.format(Math.round(wert))} km`;
 
 export const zahl = (wert) => ZAHL.format(wert);
@@ -31,19 +30,18 @@ export const zahl = (wert) => ZAHL.format(wert);
 const FAKTOR = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 1 });
 
 /**
- * Bezogen auf den angezeigten, gerundeten Betrag mit einer Nachkommastelle:
- * 56.2 (angezeigt 56 €) wird zu "Das sind 0,2-mal Büchergeld", 900 zu "Das sind 3-mal Büchergeld".
+ * Based on the displayed, rounded amount so the factor matches what the user sees, with one decimal:
+ * 56.2 (shown as 56 €) becomes "Das sind 0,2-mal Büchergeld", 900 becomes "Das sind 3-mal Büchergeld".
  */
 export const buechergeld = (betrag) => `Das sind ${FAKTOR.format(Math.round(betrag) / BUECHERGELD)}-mal Büchergeld`;
 
-/** 14.1 wird zu "14 Std. 6 Min.". */
 export const stundenMinuten = (stunden) => {
   const minuten = Math.round(stunden * 60);
   return `${Math.floor(minuten / 60)} Std. ${minuten % 60} Min.`;
 };
 
-/** Nominativ und Akkusativ: "1 Tag" oder "8 Tage". */
+/** Nominative and accusative: "1 Tag" or "8 Tage". */
 export const tage = (n) => `${zahl(n)} ${n === 1 ? 'Tag' : 'Tage'}`;
 
-/** Dativ, etwa nach "von", "ab" oder "mit": "1 Tag" oder "8 Tagen". */
+/** Dative, e.g. after "von", "ab" or "mit": "1 Tag" or "8 Tagen". */
 export const tagen = (n) => `${zahl(n)} ${n === 1 ? 'Tag' : 'Tagen'}`;

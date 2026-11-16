@@ -19,7 +19,8 @@
 }
 
 :root {
-  /* Farben, auch von der Karte genutzt (siehe karte.js) */
+  /* Some colors are mirrored in assets/js/ui/kartenstil.js (map) and konfetti.js,
+     --hintergrund also in the theme-color meta tag in index.html. */
   --hover-hell: rgba(255, 255, 255, 0.06);
   --hintergrund: #0e1013;
   --flaeche: #15181d;
@@ -106,8 +107,6 @@ a:hover {
   padding: 40px 20px 48px;
 }
 
-/* Kopf */
-
 .kopf {
   margin-bottom: 32px;
 }
@@ -126,7 +125,7 @@ h1 {
   font-size: 1.08rem;
 }
 
-/* Eingabe */
+/* Input */
 
 .eingabe {
   display: grid;
@@ -252,13 +251,14 @@ input::placeholder {
   color: var(--gedaempft-2);
 }
 
-/* Ortsvorschläge */
+/* Place fields with suggestions */
 
 .combo {
   position: relative;
 }
 
-/* Knopf zum Leeren, rechts im Feld. Ohne Text (Platzhalter sichtbar) ausgeblendet. */
+/* Clear button on the right inside the field; clippy.js keeps Clippy above it. It is hidden
+   via :placeholder-shown while the field is empty, so the input needs a placeholder. */
 .combo {
   --knopf: 30px;
   --knopf-abstand: 8px;
@@ -302,6 +302,7 @@ input::placeholder {
   border: 2px solid var(--linie-stark);
   border-top-color: var(--akzent);
   border-radius: 50%;
+  /* Duration mirrored by DREHUNG_MS in assets/js/ui/ortsfeld.js */
   animation: drehen 0.8s linear infinite;
 }
 
@@ -332,7 +333,7 @@ input::placeholder {
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
 }
 
-/* Hochschulnamen sind lang: Liste darf breiter als das Feld sein (gesetzt von Ortsfeld) */
+/* University names are long, so the list may be wider than the field (class set in ortsfeld.js) */
 .vorschlaege-breit {
   right: auto;
   width: max(100%, 440px);
@@ -385,7 +386,7 @@ input::placeholder {
   font-size: 0.9rem;
 }
 
-/* Karte */
+/* Map */
 
 .kartenbereich {
   position: relative;
@@ -446,8 +447,6 @@ input::placeholder {
   cursor: pointer;
 }
 
-/* Kartensteuerung von MapLibre an das dunkle Design anpassen */
-
 .maplibregl-ctrl-group {
   background: var(--flaeche-2) !important;
   border: 1px solid var(--linie-stark);
@@ -485,8 +484,6 @@ input::placeholder {
   font-family: var(--schrift);
 }
 
-/* Konfetti nach der Berechnung */
-
 .konfetti {
   position: fixed;
   inset: 0;
@@ -496,7 +493,7 @@ input::placeholder {
   z-index: 50;
 }
 
-/* Ergebnis */
+/* Result */
 
 .ergebnis {
   margin-bottom: 36px;
@@ -569,8 +566,6 @@ input::placeholder {
   font-size: 0.875rem;
   color: var(--gedaempft);
 }
-
-/* Büchergeld-Hinweis beim Überfahren eines Betrags mit der Maus */
 
 @media (hover: hover) {
   .tipp {
@@ -721,7 +716,7 @@ input::placeholder {
   color: var(--gedaempft);
 }
 
-/* Hinweise */
+/* Notes */
 
 .hinweise {
   padding-top: 28px;
@@ -775,7 +770,7 @@ input::placeholder {
   white-space: nowrap;
 }
 
-/* Fuß */
+/* Footer */
 
 .fuss {
   margin-top: 48px;
@@ -803,16 +798,14 @@ input::placeholder {
   color: var(--text);
 }
 
-/* Telefone: Karte etwas flacher */
-
 @media (max-width: 639px) {
   .karte {
     height: 260px;
   }
 }
 
-/* Desktop: Eingaben und Ergebnisse links, Karte rechts über die volle Höhe.
-   Gleicher Wert wie DESKTOP in assets/js/ui/medien.js. */
+/* Desktop: form and results on the left, map fixed on the right at full height.
+   Same breakpoint as DESKTOP in assets/js/ui/medien.js. */
 
 @media (min-width: 1024px) {
   :root {

@@ -1,19 +1,14 @@
-// Pkw-Strecke zwischen zwei Orten.
-//
-// 1. Valhalla (FOSSGIS) für Strecken bis rund 1.400 km Luftlinie.
-//    Der öffentliche Server lehnt längere Anfragen ab.
-// 2. OSRM (FOSSGIS) für längere Strecken oder wenn Valhalla scheitert.
-// 3. Gibt es keine Straßenverbindung (z. B. über den Atlantik), wird die
-//    Luftlinie verwendet.
-//
-// Es wird jeweils die schnellste Route berechnet. Ihre Länge passt am besten
-// zu den Rechenbeispielen im Merkblatt der Studienstiftung.
+// Driving distance: Valhalla (FOSSGIS) first, OSRM (FOSSGIS) for longer trips or when Valhalla
+// fails, and the great-circle distance when there is no road (e.g. across the Atlantic).
+// Both return the fastest route, whose length matches the worked examples in the
+// Studienstiftung's Merkblatt best.
 
 const VALHALLA_URL = 'https://valhalla1.openstreetmap.de/route';
 const OSRM_URL = 'https://routing.openstreetmap.de/routed-car/route/v1/driving/';
+// The public Valhalla server rejects longer requests.
 const VALHALLA_MAX_LUFTLINIE_KM = 1400;
-// Liegt ein Ort weiter als das vom nächsten Straßenpunkt entfernt, gilt er
-// als nicht per Straße erreichbar.
+// OSRM snaps a place to the nearest road however far away it is. Beyond this distance
+// the place counts as not reachable by road.
 const MAX_FANGRADIUS_M = 10000;
 const ZEITLIMIT_MS = 12000;
 const ERDRADIUS_KM = 6371.0088;
@@ -21,7 +16,6 @@ const ERDRADIUS_KM = 6371.0088;
 const rad = (g) => (g * Math.PI) / 180;
 const grad = (r) => (r * 180) / Math.PI;
 
-/** Luftlinie (Großkreis) in km. */
 export function luftlinieKm(a, b) {
   const dLat = rad(b.lat - a.lat);
   const dLon = rad(b.lon - a.lon);
@@ -30,9 +24,8 @@ export function luftlinieKm(a, b) {
 }
 
 /**
- * Punkte entlang des Großkreises als [lon, lat]. Die Längengrade werden
- * fortlaufend gehalten (auch über 180 hinaus), damit die Linie auf der Karte
- * nicht an der Datumsgrenze springt.
+ * Points along the great circle as [lon, lat]. Longitudes stay continuous (even beyond
+ * 180 degrees) so the line on the map does not jump at the date line.
  */
 export function grosskreis(a, b, schritte = 96) {
   const p1 = [rad(a.lat), rad(a.lon)];
@@ -60,7 +53,7 @@ export function grosskreis(a, b, schritte = 96) {
   return punkte;
 }
 
-/** Dekodiert eine Polyline mit 6 Nachkommastellen (Valhalla) zu [lon, lat]. */
+/** Decodes an encoded polyline with precision 6 (Valhalla's format) into [lon, lat] pairs. */
 export function dekodierePolyline6(text) {
   const punkte = [];
   let index = 0;
@@ -85,7 +78,6 @@ export function dekodierePolyline6(text) {
   return punkte;
 }
 
-/** Reduziert eine Linie gleichmäßig auf höchstens maxPunkte (Anfang und Ende bleiben). */
 export function duenneAus(punkte, maxPunkte = 2000) {
   if (punkte.length <= maxPunkte) return punkte;
   const schritt = (punkte.length - 1) / (maxPunkte - 1);
@@ -96,7 +88,10 @@ export function duenneAus(punkte, maxPunkte = 2000) {
 
 class KeineStrasse extends Error {}
 
-/** Verknüpft ein optionales Abbruchsignal mit einem Zeitlimit. Auch vom Fahrplan genutzt. */
+/**
+ * Combines an optional AbortSignal with a timeout. Also used by fahrplan.js.
+ * @returns {{signal: AbortSignal, fertig: () => void}} call fertig() when done to clear the timer
+ */
 export function mitZeitlimit(signal, ms = ZEITLIMIT_MS) {
   const steuerung = new AbortController();
   const timer = setTimeout(() => steuerung.abort(new DOMException('Zeitüberschreitung', 'TimeoutError')), ms);
@@ -118,7 +113,7 @@ async function valhalla(a, b, signal) {
   const antwort = await fetch(url, { signal });
   const daten = await antwort.json().catch(() => ({}));
   if (!antwort.ok) {
-    // 442: keine Route gefunden, 171: kein Straßenpunkt in der Nähe
+    // Valhalla error codes: 442 no route found, 171 no road near a location
     if (daten.error_code === 442 || daten.error_code === 171) throw new KeineStrasse();
     throw new Error(`Valhalla: ${daten.error || antwort.status}`);
   }
@@ -144,9 +139,9 @@ async function osrm(a, b, signal) {
 /**
  * @returns {Promise<{art: 'strasse'|'keine'|'fehler', km: number, luftlinieKm: number,
  *                    geometrie: Array<[number, number]>, quelle?: string}>}
- *   art "strasse": Pkw-Route gefunden, km ist die Streckenlänge
- *   art "keine":   keine Straßenverbindung, km ist die Luftlinie
- *   art "fehler":  Routendienste nicht erreichbar, km ist die Luftlinie
+ *   art "strasse": driving route found, km is its length
+ *   art "keine":   no road connection, km is the great-circle distance
+ *   art "fehler":  routing services unreachable, km is the great-circle distance
  */
 export async function berechneRoute(a, b, { signal } = {}) {
   const luftlinie = luftlinieKm(a, b);

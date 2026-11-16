@@ -1,6 +1,3 @@
-// Kleines Konfetti auf einem Canvas, ohne externe Bibliothek.
-// Wird übersprungen, wenn im System reduzierte Bewegung eingestellt ist.
-
 import { reduzierteBewegung } from './medien.js';
 
 const FARBEN = ['#c8f169', '#ece9e1', '#ffc670', '#8cc8ff', '#ff9f8a'];
@@ -9,16 +6,13 @@ const DAUER_MS = 2800;
 const SCHWERKRAFT = 0.28;
 const LUFTWIDERSTAND = 0.985;
 
-/**
- * Lässt Konfetti von einem Punkt im Fenster aufsteigen.
- * @param {{x: number, y: number}} ursprung Punkt in Fensterkoordinaten
- */
+/** @param {{x: number, y: number}} ursprung launch point in viewport coordinates */
 export function konfetti(ursprung) {
   if (reduzierteBewegung()) return;
 
   const breite = window.innerWidth;
   const hoehe = window.innerHeight;
-  // Einfache Auflösung genügt für kleine, schnell bewegte Rechtecke und spart Speicher
+  // No devicePixelRatio scaling: 1x is enough for small, fast-moving pieces and saves memory.
   const canvas = document.createElement('canvas');
   canvas.className = 'konfetti';
   canvas.setAttribute('aria-hidden', 'true');
@@ -28,7 +22,6 @@ export function konfetti(ursprung) {
   const ctx = canvas.getContext('2d');
 
   const teile = Array.from({ length: ANZAHL }, () => {
-    // Kegel nach oben, leicht gestreut
     const winkel = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 0.95;
     const tempo = 7 + Math.random() * 10;
     return {
@@ -49,7 +42,7 @@ export function konfetti(ursprung) {
   let vorher = start;
 
   function bild(jetzt) {
-    // Bewegung an die Bildrate anpassen (Basis 60 Bilder pro Sekunde)
+    // Speeds, SCHWERKRAFT and LUFTWIDERSTAND are per frame at 60 fps; f scales them to the real frame time.
     const f = Math.min(3, (jetzt - vorher) / (1000 / 60));
     vorher = jetzt;
     const verlauf = (jetzt - start) / DAUER_MS;
@@ -69,13 +62,12 @@ export function konfetti(ursprung) {
       ctx.save();
       ctx.translate(t.x + Math.sin(t.phase) * 2, t.y);
       ctx.rotate(t.drehung);
-      // Kippen um die Längsachse wie fallendes Papier
+      // Flip around the long axis like falling paper
       ctx.scale(1, Math.cos(t.phase));
       ctx.fillStyle = t.farbe;
       ctx.fillRect(-t.breite / 2, -t.hoehe / 2, t.breite, t.hoehe);
       ctx.restore();
     }
-    // Ende nach Ablauf der Zeit oder sobald alles aus dem Bild gefallen ist
     if (verlauf < 1 && sichtbar > 0) requestAnimationFrame(bild);
     else canvas.remove();
   }
