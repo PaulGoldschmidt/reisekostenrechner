@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { BASIS as CLIPPY_BASIS } from '../assets/js/ui/clippy.js';
 
@@ -71,10 +71,31 @@ test('Import-Map enthält Prüfsummen für genau die Clippy-Dateien, die clippy.
   for (const pruefsumme of Object.values(karte.integrity)) assert.match(pruefsumme, /^sha384-[A-Za-z0-9+/]{64}$/);
 });
 
-test('Alle Skripte der Seite sind syntaktisch gültig', () => {
-  // Fängt Fehler in Dateien ab, die nur im Browser laufen und sonst nicht getestet werden
-  for (const pfad of eigeneDateien.filter((p) => p.endsWith('.js'))) {
-    const ergebnis = spawnSync(process.execPath, ['--check', pfad], { encoding: 'utf8' });
-    assert.equal(ergebnis.status, 0, `${relative(wurzel, pfad)}: ${ergebnis.stderr}`);
+test('Alle Module der Seite laden, und app.js importiert nur vorhandene Exporte', async () => {
+  const appPfad = join(wurzel, 'assets', 'js', 'app.js');
+  // Laden prüft Syntax, Importe und Exporte (etwa umbenannte Funktionen), nicht nur die Syntax
+  for (const pfad of dateien(join(wurzel, 'assets', 'js')).filter((p) => p.endsWith('.js') && p !== appPfad)) {
+    await import(pathToFileURL(pfad).href);
+  }
+  // app.js braucht den Browser: Syntax prüfen und Importe mit den echten Exporten abgleichen
+  const pruefung = spawnSync(process.execPath, ['--check', appPfad], { encoding: 'utf8' });
+  assert.equal(pruefung.status, 0, pruefung.stderr);
+  for (const [, namen, ziel] of readFileSync(appPfad, 'utf8').matchAll(/import \{([^}]+)\} from '([^']+)'/g)) {
+    const modul = await import(new URL(ziel, pathToFileURL(appPfad)).href);
+    for (const name of namen.split(',').map((n) => n.trim().split(/\s+as\s+/)[0]).filter(Boolean)) {
+      assert.ok(name in modul, `app.js importiert ${name} aus ${ziel}, das es dort nicht gibt`);
+    }
+  }
+});
+
+test('Zahlen in den Hinweisen passen zu den Regeln', async () => {
+  const { AUSLANDSVORHABEN } = await import('../assets/js/rules/auslandsvorhaben.js');
+  const { REGIONEN } = await import('../assets/js/data/regionen.js');
+  const html = readFileSync(join(wurzel, 'index.html'), 'utf8');
+  const { mitKompensation, ohneKompensation } = AUSLANDSVORHABEN.europaFlug;
+  assert.ok(html.includes(`(${mitKompensation} € mit, ${ohneKompensation} € ohne CO₂-Kompensation), ab ${REGIONEN.EU.mindestTage} Tagen`));
+  assert.ok(html.includes(`länger als ${AUSLANDSVORHABEN.europaFlugMindestBahnStunden} Stunden`));
+  for (const region of Object.values(REGIONEN)) {
+    assert.ok(html.includes(`<td>${region.mindestTage} Tagen</td>`), `Tabelle: ${region.name}`);
   }
 });
