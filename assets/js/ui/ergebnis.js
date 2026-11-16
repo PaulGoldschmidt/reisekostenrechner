@@ -274,14 +274,11 @@ export function zeigeAuslandsvorhaben(r, ziel, z, aktionen) {
     const texte = [];
     if (f.status === 'keine-foerderung') {
       texte.push(`Bei Anreise mit dem Flugzeug muss das Vorhaben mindestens ${tage(f.mindestTage)} dauern, sonst gibt es keine Auslandsförderung.${dauerAngabe}`);
-    } else if (f.status === 'bahn-unter-12h') {
-      texte.push(`Flüge werden nur bezuschusst, wenn Bahn oder Fernbus länger als ${A.europaFlugMindestBahnStunden} Stunden bräuchten oder das Ziel außerhalb des Interrail- und Fernbus-Raums liegt. Sonst entfällt der Zuschuss.`);
     } else if (f.status === 'dauer-unbekannt') {
       texte.push(`Nur bei einem Vorhaben ab ${tagen(f.mindestTage)}. Mit einem Zeitraum oben prüft der Rechner das.`);
-    } else {
+    } else if (f.status === 'moeglich') {
       texte.push(`Mindestdauer von ${tagen(f.mindestTage)} erfüllt.${dauerAngabe}`);
     }
-    texte.push('Deutlich reduzierte Pauschale für Flüge innerhalb Europas.');
     flug = posten({
       titel: 'Flugzeug',
       betrag: geld(zahlt ? f.mitKompensation : 0),
