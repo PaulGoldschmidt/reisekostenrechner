@@ -20,7 +20,7 @@ export class Ortsfeld {
    * @param {(text: string) => Promise<object[]>|object[]} [optionen.lokal] lokale Vorschläge
    * @param {string} [optionen.lokalTitel] Überschrift der lokalen Vorschläge
    */
-  constructor(eingabe, liste, { onWahl, onLeeren, lokal = null, lokalTitel = '' }) {
+  constructor(eingabe, liste, { onWahl, onLeeren, lokal = null, lokalTitel = 'Vorschläge' }) {
     this.eingabe = eingabe;
     this.liste = liste;
     this.onWahl = onWahl;
@@ -35,6 +35,9 @@ export class Ortsfeld {
     this.timer = null;
     this.abbruch = null;
     this.nummer = 0;
+
+    // Lokale Treffer (Hochschulnamen) sind lang: Liste darf breiter als das Feld sein
+    if (lokal) liste.classList.add('vorschlaege-breit');
 
     eingabe.addEventListener('input', () => this.beiEingabe());
     eingabe.addEventListener('keydown', (e) => this.beiTaste(e));
@@ -58,76 +61,90 @@ export class Ortsfeld {
     this.eingabe.value = ort ? ort.label : '';
   }
 
+  /** Laufende Suche abbrechen und Ergebnisse der Ortssuche verwerfen. */
+  abbrechen() {
+    this.nummer++;
+    clearTimeout(this.timer);
+    if (this.abbruch) this.abbruch.abort();
+    this.entfernte = [];
+    this.meldung = null;
+    this.aktiv = -1;
+  }
+
+  /** Ersten Vorschlag markieren, solange noch keiner gewählt ist. */
+  markiereErsten() {
+    if (this.aktiv < 0 && this.vorschlaege.length) this.aktiv = 0;
+  }
+
   async beiEingabe() {
     if (this.gewaehlt) {
       this.gewaehlt = null;
       this.onLeeren();
     }
-    clearTimeout(this.timer);
-    if (this.abbruch) this.abbruch.abort();
-    const nummer = ++this.nummer;
+    this.abbrechen();
+    const nummer = this.nummer;
     const text = this.eingabe.value.trim();
-    this.entfernte = [];
-    this.meldung = null;
     if (text.length < 2) {
       this.lokale = [];
       this.schliessen();
       return;
     }
-    this.timer = setTimeout(() => this.suche(text, nummer), VERZOEGERUNG_MS);
+    this.timer = setTimeout(() => this.suche(text), VERZOEGERUNG_MS);
 
     if (this.lokal) {
       const lokale = await this.lokal(text);
+      // Inzwischen weitergetippt: veraltete lokale Treffer verwerfen
       if (nummer !== this.nummer) return;
       this.lokale = lokale;
-      this.aktiv = this.lokale.length ? 0 : -1;
+      this.markiereErsten();
       if (this.lokale.length) this.zeichne();
     }
   }
 
-  async suche(text, nummer) {
+  async suche(text) {
     this.abbruch = new AbortController();
     try {
-      const entfernte = await sucheOrte(text, { signal: this.abbruch.signal });
-      if (nummer !== this.nummer) return;
-      this.entfernte = entfernte;
+      this.entfernte = await sucheOrte(text, { signal: this.abbruch.signal });
       this.meldung = this.vorschlaege.length ? null : 'Keine passenden Orte gefunden.';
     } catch (fehler) {
-      if (fehler.name === 'AbortError' || nummer !== this.nummer) return;
+      // Abgebrochen, weil weitergetippt oder gewählt wurde
+      if (fehler.name === 'AbortError') return;
       this.entfernte = [];
       this.meldung = 'Die Ortssuche ist gerade nicht erreichbar.';
     }
-    if (this.aktiv < 0 && this.vorschlaege.length) this.aktiv = 0;
+    this.markiereErsten();
     this.zeichne();
   }
 
   zeichne() {
     const id = this.liste.id;
-    const eintraege = [];
+    const gruppe = (text) => h('li', { class: 'vorschlag-gruppe', role: 'presentation' }, text);
     const option = (ort, i) =>
       h(
         'li',
         {
           id: `${id}-${i}`,
           role: 'option',
-          class: `vorschlag vorschlag-${ort.art || 'ort'}`,
-          'aria-selected': i === this.aktiv ? 'true' : 'false',
+          class: 'vorschlag',
+          'aria-selected': String(i === this.aktiv),
           onmousedown: (e) => {
             e.preventDefault();
             this.waehle(i);
           },
         },
-        h('span', { class: 'vorschlag-name' }, ort.titel || ort.name),
+        h('span', { class: 'vorschlag-name' }, ort.titel),
         ort.zusatz ? h('span', { class: 'vorschlag-zusatz' }, ort.zusatz) : null,
       );
 
     const entfernte = this.sichtbareEntfernte;
     const mitGruppen = this.lokale.length > 0 && entfernte.length > 0;
-    if (mitGruppen && this.lokalTitel) eintraege.push(h('li', { class: 'vorschlag-gruppe', role: 'presentation' }, this.lokalTitel));
-    this.lokale.forEach((ort, i) => eintraege.push(option(ort, i)));
-    if (mitGruppen) eintraege.push(h('li', { class: 'vorschlag-gruppe', role: 'presentation' }, 'Orte und Adressen'));
-    entfernte.forEach((ort, i) => eintraege.push(option(ort, this.lokale.length + i)));
-    if (this.meldung) eintraege.push(h('li', { class: 'vorschlag-meldung', role: 'presentation' }, this.meldung));
+    const eintraege = [
+      mitGruppen && gruppe(this.lokalTitel),
+      ...this.lokale.map((ort, i) => option(ort, i)),
+      mitGruppen && gruppe('Orte und Adressen'),
+      ...entfernte.map((ort, i) => option(ort, this.lokale.length + i)),
+      this.meldung && h('li', { class: 'vorschlag-meldung', role: 'presentation' }, this.meldung),
+    ].filter(Boolean);
 
     this.liste.replaceChildren(...eintraege);
     if (this.aktiv >= 0) this.eingabe.setAttribute('aria-activedescendant', `${id}-${this.aktiv}`);
@@ -170,15 +187,10 @@ export class Ortsfeld {
   waehle(i) {
     const ort = this.vorschlaege[i];
     if (!ort) return;
-    this.nummer++;
-    clearTimeout(this.timer);
-    if (this.abbruch) this.abbruch.abort();
+    this.abbrechen();
+    this.lokale = [];
     this.gewaehlt = ort;
     this.eingabe.value = ort.label;
-    this.lokale = [];
-    this.entfernte = [];
-    this.meldung = null;
-    this.aktiv = -1;
     this.liste.replaceChildren();
     this.eingabe.removeAttribute('aria-activedescendant');
     this.schliessen();

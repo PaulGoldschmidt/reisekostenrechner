@@ -272,8 +272,8 @@ input::placeholder {
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
 }
 
-/* Hochschulnamen sind lang: Liste darf breiter als das Feld sein */
-#start-liste {
+/* Hochschulnamen sind lang: Liste darf breiter als das Feld sein (gesetzt von Ortsfeld) */
+.vorschlaege-breit {
   right: auto;
   width: max(100%, 440px);
   max-width: calc(100vw - 40px);
