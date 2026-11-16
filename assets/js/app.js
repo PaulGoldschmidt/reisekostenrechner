@@ -334,11 +334,11 @@ const startFeld = new Ortsfeld(el.start, el.startListe, {
 const zielFeld = new Ortsfeld(el.ziel, el.zielListe, {
   onWahl: (ort) => {
     zustand.ziel = ort;
-    ladeRoute();
+    const routeFertig = ladeRoute();
     zeichne();
-    // Nur ein Ort gewählt: Clippy weist auf die genaue Adresse hin
-    if (ort.art === 'ort') zeigeAdressTipp(el.ziel);
-    else versteckeClippy();
+    // Nur ein Ort gewählt: Clippy weist auf die genaue Adresse hin, sobald die Route steht
+    if (ort.art !== 'ort') versteckeClippy();
+    else routeFertig.then(() => zustand.ziel === ort && zeigeAdressTipp(el.ziel));
   },
   onLeeren: () => {
     versteckeClippy();

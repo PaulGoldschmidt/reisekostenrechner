@@ -5,8 +5,10 @@
 // weitere Abhängigkeiten). Die Prüfsummen stehen in der Import-Map in index.html.
 // Clippy, der Name und alle Grafiken gehören Microsoft.
 
-const BASIS = 'https://cdn.jsdelivr.net/npm/clippyjs@0.1.0/dist/';
-const DESKTOP = '(min-width: 1024px) and (hover: hover)';
+import { istDesktop, mitMaus, reduzierteBewegung } from './medien.js';
+
+// Version und Prüfsummen müssen zur Import-Map in index.html passen (siehe tests/seite.test.js)
+export const BASIS = 'https://cdn.jsdelivr.net/npm/clippyjs@0.1.0/dist/';
 const SCHLUESSEL = 'reisekostenrechner:clippy';
 const SICHTBAR_MS = 14000;
 const TEXT =
@@ -15,6 +17,8 @@ const TEXT =
 
 let agent = null;
 let gestartet = false;
+// Wird während des Ladens auf false gesetzt, wenn Clippy doch nicht mehr erscheinen soll
+let erwuenscht = false;
 
 function schonGezeigt() {
   try {
@@ -37,17 +41,23 @@ function merkeGezeigt() {
  * @param {HTMLElement} feld Eingabefeld des Veranstaltungsorts
  */
 export async function zeigeAdressTipp(feld) {
-  if (gestartet || schonGezeigt()) return;
-  if (!window.matchMedia(DESKTOP).matches) return;
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (gestartet || schonGezeigt() || !istDesktop() || !mitMaus() || reduzierteBewegung()) return;
   gestartet = true;
+  erwuenscht = true;
   merkeGezeigt();
 
+  let geladen;
   try {
-    const { initAgent } = await import(`${BASIS}index.mjs`);
-    agent = await initAgent({
-      agent: () => import(`${BASIS}agents/clippy/agent.mjs`),
-      map: () => import(`${BASIS}agents/clippy/map.mjs`),
+    // Alle drei Dateien gleichzeitig anfordern statt nacheinander
+    const [bibliothek, daten, karte] = [
+      import(`${BASIS}index.mjs`),
+      import(`${BASIS}agents/clippy/agent.mjs`),
+      import(`${BASIS}agents/clippy/map.mjs`),
+    ];
+    const { initAgent } = await bibliothek;
+    geladen = await initAgent({
+      agent: () => daten,
+      map: () => karte,
       // stumm: keine Töne laden und abspielen
       sound: async () => ({ default: {} }),
     });
@@ -55,6 +65,11 @@ export async function zeigeAdressTipp(feld) {
     // CDN nicht erreichbar oder Prüfsumme falsch: dann eben ohne Clippy
     return;
   }
+  if (!erwuenscht) {
+    geladen.dispose();
+    return;
+  }
+  agent = geladen;
 
   // Rechts neben dem Feld, etwas höher, am Übergang zur Karte
   const r = feld.getBoundingClientRect();
@@ -67,6 +82,7 @@ export async function zeigeAdressTipp(feld) {
 
 /** Lässt Clippy verschwinden, etwa wenn das Feld erneut bearbeitet wird. */
 export function versteckeClippy() {
+  erwuenscht = false;
   if (!agent) return;
   const a = agent;
   agent = null;
