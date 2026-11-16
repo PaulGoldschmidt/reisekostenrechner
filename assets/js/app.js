@@ -154,7 +154,7 @@ async function ladeRoute() {
 function zeichneStrecke(startG, zielG) {
   const { start, ziel, route, routeLaedt } = zustand;
   if (!start || !ziel) {
-    el.strecke.textContent = 'Studienort und Ziel eingeben, dann erscheinen Strecke und Zuschuss.';
+    el.strecke.textContent = '';
     return;
   }
   if (routeLaedt) {

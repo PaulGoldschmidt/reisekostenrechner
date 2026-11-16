@@ -365,6 +365,10 @@ input::placeholder {
   font-size: 0.95rem;
 }
 
+.strecke:empty {
+  display: none;
+}
+
 .strecke strong {
   color: var(--text);
 }
@@ -785,7 +789,4 @@ input::placeholder {
     pointer-events: auto;
   }
 
-  .strecke:empty {
-    display: none;
-  }
 }
