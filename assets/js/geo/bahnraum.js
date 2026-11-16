@@ -1,27 +1,25 @@
-// Interrail- und Fernbus-Raum: Ziele in Europa, die ohne Flugzeug erreichbar sind.
-// Liegt das Ziel eines Auslandsvorhabens außerhalb, darf geflogen werden (Regelung zur
-// nachhaltigen Auslandsmobilität ab 1. Juli 2025).
+// Interrail-/Fernbus-Raum: destinations in Europe that can be reached without a plane.
+// If the destination of an Auslandsvorhaben lies outside it, flying is allowed (rules for
+// sustainable mobility abroad from 1 July 2025).
 
-// Länder des Interrail Global Pass
+// Countries covered by the Interrail Global Pass
 const INTERRAIL = [
   'AT', 'BE', 'BA', 'BG', 'HR', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GB', 'GR', 'HU', 'IE', 'IT', 'LV',
   'LT', 'LU', 'ME', 'NL', 'MK', 'NO', 'PL', 'PT', 'RO', 'RS', 'SK', 'SI', 'ES', 'SE', 'CH', 'TR',
 ];
-// Zusätzlich mit Fernbus erreichbar
 const FERNBUS = ['AL', 'XK', 'MD', 'UA', 'LI', 'AD', 'MC', 'SM', 'VA', 'GI', 'AX'];
 
 const RAUM = new Set([...INTERRAIL, ...FERNBUS]);
 
 /**
- * Ob ein Ziel in Europa außerhalb des Interrail- und Fernbus-Raums liegt, etwa Island, Malta,
- * Zypern oder die Kanaren. Für Ziele außerhalb Europas gilt die Regel nicht (false).
- * @param {{code: string, region: string|null}} gebiet aus bestimmeGebiet
+ * Whether a destination in Europe lies outside the Interrail-/Fernbus-Raum, such as Iceland,
+ * Malta, Cyprus or the Canary Islands. The rule does not apply outside Europe (false).
+ * @param {{code: string, region: string|null}} gebiet from bestimmeGebiet
  */
 export function ausserhalbBahnRaum(gebiet, lat, lon) {
   if (gebiet.region !== 'EU') return false;
   if (!RAUM.has(gebiet.code)) return true;
-  // Inseln weit vor dem Festland
-  if (gebiet.code === 'ES' && lat < 30) return true; // Kanaren
-  if (gebiet.code === 'PT' && lon < -12) return true; // Azoren, Madeira
+  if (gebiet.code === 'ES' && lat < 30) return true; // Canary Islands
+  if (gebiet.code === 'PT' && lon < -12) return true; // Azores, Madeira
   return false;
 }

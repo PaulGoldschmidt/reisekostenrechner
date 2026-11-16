@@ -1,11 +1,9 @@
-// Beträge werden intern in Zehntelcent (1/1000 Euro) gerechnet. So bleiben
-// Kilometersätze wie 0,025 Euro ganzzahlig und es entstehen keine Rundungsfehler.
+// Amounts are computed internally in tenths of a cent (1/1000 euro), so per-km rates
+// like 0.025 euro stay whole numbers and no floating point rounding errors creep in.
 
-/** Studienkostenpauschale der Studienstiftung pro Monat, umgangssprachlich "Büchergeld". */
+/** Monthly Studienkostenpauschale of the Studienstiftung, colloquially "Büchergeld". */
 export const BUECHERGELD = 300;
 
-/** Euro (Zahl) in Zehntelcent umrechnen. */
 export const milli = (euro) => Math.round(euro * 1000);
 
-/** Zehntelcent in Euro umrechnen, kaufmännisch auf Cent gerundet. */
 export const euro = (milliBetrag) => Math.round(milliBetrag / 10) / 100;

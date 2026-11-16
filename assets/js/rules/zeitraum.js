@@ -1,5 +1,3 @@
-// Hilfsfunktionen für Zeiträume im Format JJJJ-MM-TT (wie <input type="date">).
-
 const TAG_MS = 24 * 60 * 60 * 1000;
 
 function parse(datum) {
@@ -7,13 +5,13 @@ function parse(datum) {
   if (!m) return null;
   const [j, mo, t] = [Number(m[1]), Number(m[2]), Number(m[3])];
   const d = new Date(Date.UTC(j, mo - 1, t));
-  // Ungültige Daten wie 2026-02-30 abfangen
+  // Date.UTC silently rolls invalid dates like 2026-02-30 over into the next month.
   if (d.getUTCFullYear() !== j || d.getUTCMonth() !== mo - 1 || d.getUTCDate() !== t) return null;
   return d;
 }
 
 /**
- * Wertet einen Zeitraum aus. An- und Abreisetag zählen mit.
+ * Both the arrival and the departure day count as full days.
  * @returns {null | {tage: number, wochen: number, mehrAlsEinJahr: boolean}}
  */
 export function werteZeitraumAus(von, bis) {
@@ -21,21 +19,22 @@ export function werteZeitraumAus(von, bis) {
   const b = parse(bis);
   if (!a || !b || b < a) return null;
   const tage = Math.round((b - a) / TAG_MS) + 1;
-  // Mehr als ein Jahr: Ende liegt am oder nach dem gleichen Kalendertag im Folgejahr.
+  // Because both end days count, ending on the same calendar day a year later is
+  // already more than a year.
   const einJahrSpaeter = new Date(Date.UTC(a.getUTCFullYear() + 1, a.getUTCMonth(), a.getUTCDate()));
   return { tage, wochen: tage / 7, mehrAlsEinJahr: b >= einJahrSpaeter };
 }
 
 /**
- * Ob der Zeitraum für die Berechnung gebraucht wird.
- * Auslandsvorhaben: immer (Mindestdauer bei Flügen, Auszahlung bei mehr als einem Jahr).
- * Veranstaltung: nur wenn ein Flug ins Ausland bezuschusst werden kann, also wenn es keine
- * Straßenverbindung gibt oder die Bahnfahrt länger als 12 Stunden dauert. Dann gilt die
- * Mindestdauer von höchstens 500 km pro Veranstaltungstag.
+ * Whether the calculation needs the dates of the stay.
+ * Auslandsvorhaben: always (minimum stay for flights, separate payout for more than a year).
+ * Veranstaltung: only if a flight abroad can be subsidised, that is if there is no road
+ * connection or the train takes longer than 12 hours. The stay must then be long enough
+ * that there are at most 500 km of travel per event day.
  *
  * @param {object} p
  * @param {'veranstaltung'|'ausland'} p.anlass
- * @param {boolean|null} p.ausland  Reise ins oder aus dem Ausland (null: Orte noch unbekannt)
+ * @param {boolean|null} p.ausland  trip to or from another country (null: places not known yet)
  * @param {'strasse'|'keine'|'fehler'|null} p.routenArt
  * @param {boolean} p.bahnUeber12h
  */
@@ -46,7 +45,6 @@ export function zeitraumNoetig({ anlass, ausland, routenArt, bahnUeber12h }) {
   return routenArt === 'strasse' && bahnUeber12h;
 }
 
-/** Prüft, ob beide Daten gesetzt sind, das Ende aber vor dem Beginn liegt. */
 export function zeitraumUngueltig(von, bis) {
   const a = parse(von);
   const b = parse(bis);
