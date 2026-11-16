@@ -7,6 +7,8 @@ import { sucheOrte } from '../geo/suche.js';
 import { h } from './dom.js';
 
 const VERZOEGERUNG_MS = 250;
+// Dauer einer Umdrehung des Ladekreises, wie in style.css (.lade-kreis)
+const DREHUNG_MS = 800;
 // Neben lokalen Treffern nur wenige Orte zeigen, damit die Liste kurz bleibt
 const MAX_ENTFERNTE_NEBEN_LOKALEN = 3;
 
@@ -38,15 +40,11 @@ export class Ortsfeld {
     // Läuft gerade eine Suche bei der Ortssuche (oder steht sie unmittelbar bevor)?
     this.sucht = false;
 
-    // Knopf zum Leeren des Feldes, sichtbar sobald Text drinsteht
-    this.leeren = h('button', {
-      type: 'button',
-      class: 'feld-leeren',
-      'aria-label': 'Eingabe löschen',
-      hidden: true,
-      onclick: () => this.loesche(),
-    });
-    eingabe.after(this.leeren);
+    // Knopf zum Leeren des Feldes. Sichtbar ist er per CSS, sobald Text im Feld steht
+    // (der Platzhalter ist dann nicht zu sehen).
+    eingabe.after(
+      h('button', { type: 'button', class: 'feld-leeren', 'aria-label': 'Eingabe löschen', onclick: () => this.loesche() }, '×'),
+    );
 
     // Lokale Treffer (Hochschulnamen) sind lang: Liste darf breiter als das Feld sein
     if (lokal) liste.classList.add('vorschlaege-breit');
@@ -71,7 +69,6 @@ export class Ortsfeld {
   setze(ort) {
     this.gewaehlt = ort;
     this.eingabe.value = ort ? ort.label : '';
-    this.leeren.hidden = !ort;
   }
 
   /** Feld leeren wie beim Löschen per Tastatur und den Fokus zurückgeben. */
@@ -98,7 +95,6 @@ export class Ortsfeld {
   }
 
   async beiEingabe() {
-    this.leeren.hidden = !this.eingabe.value;
     if (this.gewaehlt) {
       this.gewaehlt = null;
       this.onLeeren();
@@ -161,6 +157,16 @@ export class Ortsfeld {
         ort.zusatz ? h('span', { class: 'vorschlag-zusatz' }, ort.zusatz) : null,
       );
 
+    // Statuszeile am Ende: läuft die Suche noch, mit Ladekreis. Die Verzögerung hält die
+    // Drehung beim Neuzeichnen an derselben Stelle, statt bei jedem Tastendruck neu zu beginnen.
+    const ladekreis = () =>
+      h('span', {
+        class: 'lade-kreis',
+        'aria-hidden': 'true',
+        style: `animation-delay: -${Math.round(performance.now() % DREHUNG_MS)}ms`,
+      });
+    const status = this.sucht ? [ladekreis(), 'Suche passende Orte …'] : this.meldung;
+
     const entfernte = this.sichtbareEntfernte;
     const mitGruppen = this.lokale.length > 0 && entfernte.length > 0;
     const eintraege = [
@@ -168,14 +174,7 @@ export class Ortsfeld {
       ...this.lokale.map((ort, i) => option(ort, i)),
       mitGruppen && gruppe('Orte und Adressen'),
       ...entfernte.map((ort, i) => option(ort, this.lokale.length + i)),
-      this.sucht &&
-        h(
-          'li',
-          { class: 'vorschlag-laedt', role: 'presentation' },
-          h('span', { class: 'lade-kreis', 'aria-hidden': 'true' }),
-          'Suche passende Orte …',
-        ),
-      this.meldung && h('li', { class: 'vorschlag-meldung', role: 'presentation' }, this.meldung),
+      status && h('li', { class: 'vorschlag-meldung', role: 'presentation' }, status),
     ].filter(Boolean);
 
     this.liste.replaceChildren(...eintraege);
