@@ -1,3 +1,5 @@
+import { BUECHERGELD } from '../rules/geld.js';
+
 const EURO_GANZ = new Intl.NumberFormat('de-DE', {
   style: 'currency',
   currency: 'EUR',
@@ -12,11 +14,11 @@ const SATZ = new Intl.NumberFormat('de-DE', {
 });
 const ZAHL = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 0 });
 
-/** Auf volle Euro gerundet (ab 50 Cent aufwärts): 20.4 wird zu "20 €", 867.5 zu "868 €". */
-export const rundeEuro = (betrag) => Math.round(betrag);
-
-/** Betrag in vollen Euro, z. B. 254.8 wird zu "255 €". Gerechnet wird weiter in Cent. */
-export const euro = (betrag) => EURO_GANZ.format(rundeEuro(betrag));
+/**
+ * Betrag in vollen Euro, ab 50 Cent aufwärts gerundet: 254.8 wird zu "255 €", 867.5 zu "868 €".
+ * Gerechnet wird weiter in Cent, nur die Anzeige ist gerundet.
+ */
+export const euro = (betrag) => EURO_GANZ.format(Math.round(betrag));
 
 /** Kilometersatz, z. B. 0.125 wird zu "0,125 €". */
 export const satz = (betrag) => SATZ.format(betrag);
@@ -26,15 +28,13 @@ export const km = (wert) => `${ZAHL.format(Math.round(wert))} km`;
 
 export const zahl = (wert) => ZAHL.format(wert);
 
-// Studienkostenpauschale der Studienstiftung pro Monat, umgangssprachlich "Büchergeld"
-export const BUECHERGELD = 300;
 const FAKTOR = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 1 });
 
 /**
  * Bezogen auf den angezeigten, gerundeten Betrag mit einer Nachkommastelle:
  * 56.2 (angezeigt 56 €) wird zu "Das sind 0,2-mal Büchergeld", 900 zu "Das sind 3-mal Büchergeld".
  */
-export const buechergeld = (betrag) => `Das sind ${FAKTOR.format(rundeEuro(betrag) / BUECHERGELD)}-mal Büchergeld`;
+export const buechergeld = (betrag) => `Das sind ${FAKTOR.format(Math.round(betrag) / BUECHERGELD)}-mal Büchergeld`;
 
 /** Nominativ und Akkusativ: "1 Tag" oder "8 Tage". */
 export const tage = (n) => `${zahl(n)} ${n === 1 ? 'Tag' : 'Tage'}`;

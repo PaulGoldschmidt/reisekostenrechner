@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { euro, km, buechergeld, tage, tagen } from '../assets/js/ui/format.js';
 
 // Intl trennt Zahl und Währung mit einem geschützten Leerzeichen
-const ohneNbsp = (t) => t.replace(/ /g, ' ');
+const ohneNbsp = (t) => t.replace(/\u00A0/g, ' ');
 
 test('Beträge und Kilometer', () => {
   assert.equal(ohneNbsp(euro(80)), '80 €');
