@@ -145,7 +145,7 @@ export function zeigeVeranstaltung(r, z, aktionen) {
   const f = r.flug;
   let flug;
   if (f.status === 'inland') {
-    flug = posten({ titel: 'Flugzeug', betrag: euro(0), gedimmt: true, texte: ['Flüge innerhalb Deutschlands werden nicht bezuschusst.'] });
+    flug = posten({ titel: 'Flugzeug', betrag: euro(0), gedimmt: true, texte: ['Flüge innerhalb Deutschlands werden leider nicht bezuschusst.'] });
   } else {
     const steuerung = f.bahnPflicht
       ? schalter({
