@@ -38,7 +38,7 @@ const TEXTE = {
     anlassHilfe: 'Seminare, Akademien und andere Bildungsveranstaltungen der Studienstiftung.',
     zielLabel: 'Veranstaltungsort',
     zielPlatzhalter: 'z. B. Hattingen',
-    zielHilfe: 'Ort oder, falls bekannt, die genaue Adresse. Bei einem Bustransfer der Studienstiftung den Abfahrtsort des Busses eingeben.',
+    zielHilfe: 'Ort oder genaue Adresse.',
     zeitraumHilfe: 'Für den Flugzuschuss gilt eine Mindestdauer vor Ort. Auslandsaufenthalte direkt davor oder danach zählen mit.',
   },
   ausland: {
