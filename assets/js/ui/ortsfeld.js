@@ -1,15 +1,14 @@
-// Eingabefeld mit Ortsvorschlägen (Combobox nach WAI-ARIA).
-//
-// Optional mit einer lokalen Quelle (Hochschulverzeichnis): deren Treffer erscheinen
-// sofort und zuerst, die Orte und Adressen aus der Ortssuche folgen darunter.
+// Input with place suggestions, following the WAI-ARIA combobox pattern.
+// An optional local source (the university directory) shows its matches immediately and first;
+// places and addresses from the remote place search follow below.
 
 import { sucheOrte } from '../geo/suche.js';
 import { h } from './dom.js';
 
 const VERZOEGERUNG_MS = 250;
-// Dauer einer Umdrehung des Ladekreises, wie in style.css (.lade-kreis)
+// Mirrors the rotation duration of .lade-kreis in style.css
 const DREHUNG_MS = 800;
-// Neben lokalen Treffern nur wenige Orte zeigen, damit die Liste kurz bleibt
+// Keeps the list short when there are local matches as well
 const MAX_ENTFERNTE_NEBEN_LOKALEN = 3;
 
 export class Ortsfeld {
@@ -18,9 +17,9 @@ export class Ortsfeld {
    * @param {HTMLUListElement} liste
    * @param {object} optionen
    * @param {(ort: object) => void} optionen.onWahl
-   * @param {() => void} optionen.onLeeren
-   * @param {(text: string) => Promise<object[]>|object[]} [optionen.lokal] lokale Vorschläge
-   * @param {string} [optionen.lokalTitel] Überschrift der lokalen Vorschläge
+   * @param {() => void} optionen.onLeeren called as soon as a chosen place is edited or cleared
+   * @param {(text: string) => Promise<object[]>|object[]} [optionen.lokal] local suggestions, sync or async
+   * @param {string} [optionen.lokalTitel] group heading for the local suggestions
    */
   constructor(eingabe, liste, { onWahl, onLeeren, lokal = null, lokalTitel = 'Vorschläge' }) {
     this.eingabe = eingabe;
@@ -37,16 +36,16 @@ export class Ortsfeld {
     this.timer = null;
     this.abbruch = null;
     this.nummer = 0;
-    // Läuft gerade eine Suche bei der Ortssuche (oder steht sie unmittelbar bevor)?
+    // True while a remote search is running or still waiting for the debounce timer
     this.sucht = false;
 
-    // Knopf zum Leeren des Feldes. Sichtbar ist er per CSS, sobald Text im Feld steht
-    // (der Platzhalter ist dann nicht zu sehen).
+    // The clear button must directly follow the input: style.css hides it via
+    // input:placeholder-shown + .feld-leeren, so it only shows while the field has text.
     eingabe.after(
       h('button', { type: 'button', class: 'feld-leeren', 'aria-label': 'Eingabe löschen', onclick: () => this.loesche() }, '×'),
     );
 
-    // Lokale Treffer (Hochschulnamen) sind lang: Liste darf breiter als das Feld sein
+    // Local matches (university names) are long, so the list may grow wider than the field.
     if (lokal) liste.classList.add('vorschlaege-breit');
 
     eingabe.addEventListener('input', () => this.beiEingabe());
@@ -65,20 +64,19 @@ export class Ortsfeld {
     return [...this.lokale, ...this.sichtbareEntfernte];
   }
 
-  /** Ort von außen setzen, z. B. aus der URL. */
+  /** Sets a place from outside (e.g. from the URL) without calling onWahl. */
   setze(ort) {
     this.gewaehlt = ort;
     this.eingabe.value = ort ? ort.label : '';
   }
 
-  /** Feld leeren wie beim Löschen per Tastatur und den Fokus zurückgeben. */
+  /** Clears the field just like deleting by keyboard, then moves focus back from the clear button. */
   loesche() {
     this.eingabe.value = '';
     this.beiEingabe();
     this.eingabe.focus();
   }
 
-  /** Laufende Suche abbrechen und Ergebnisse der Ortssuche verwerfen. */
   abbrechen() {
     this.nummer++;
     clearTimeout(this.timer);
@@ -89,7 +87,6 @@ export class Ortsfeld {
     this.sucht = false;
   }
 
-  /** Ersten Vorschlag markieren, solange noch keiner gewählt ist. */
   markiereErsten() {
     if (this.aktiv < 0 && this.vorschlaege.length) this.aktiv = 0;
   }
@@ -112,12 +109,12 @@ export class Ortsfeld {
 
     if (this.lokal) {
       const lokale = await this.lokal(text);
-      // Inzwischen weitergetippt: veraltete lokale Treffer verwerfen
+      // The user kept typing in the meantime: drop these stale local matches.
       if (nummer !== this.nummer) return;
       this.lokale = lokale;
       this.markiereErsten();
     }
-    // Sofort zeigen, dass gesucht wird (lokale Treffer stehen schon darüber)
+    // Render now so the spinner (below any local matches) shows before the debounced search starts.
     this.zeichne();
   }
 
@@ -127,7 +124,7 @@ export class Ortsfeld {
       this.entfernte = await sucheOrte(text, { signal: this.abbruch.signal });
       this.meldung = this.vorschlaege.length ? null : 'Keine passenden Orte gefunden.';
     } catch (fehler) {
-      // Abgebrochen, weil weitergetippt oder gewählt wurde
+      // Aborted because the user kept typing or picked a suggestion
       if (fehler.name === 'AbortError') return;
       this.entfernte = [];
       this.meldung = 'Die Ortssuche ist gerade nicht erreichbar.';
@@ -157,8 +154,8 @@ export class Ortsfeld {
         ort.zusatz ? h('span', { class: 'vorschlag-zusatz' }, ort.zusatz) : null,
       );
 
-    // Statuszeile am Ende: läuft die Suche noch, mit Ladekreis. Die Verzögerung hält die
-    // Drehung beim Neuzeichnen an derselben Stelle, statt bei jedem Tastendruck neu zu beginnen.
+    // The negative animation-delay keeps the spinner's phase across re-renders instead of
+    // restarting the rotation on every keystroke.
     const ladekreis = () =>
       h('span', {
         class: 'lade-kreis',

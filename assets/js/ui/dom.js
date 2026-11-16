@@ -1,5 +1,5 @@
-// Kleiner Helfer zum Erzeugen von DOM-Elementen ohne innerHTML.
-// Texte werden immer als Textknoten eingefügt.
+// Creates DOM elements without innerHTML: strings are always inserted as text nodes, so data
+// from APIs or the URL can never inject markup.
 
 export function h(tag, attribute = {}, ...kinder) {
   const el = document.createElement(tag);
