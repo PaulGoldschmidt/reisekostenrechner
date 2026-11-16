@@ -14,8 +14,9 @@ const SICHTBAR_MS = 14000;
 // Größe eines Einzelbilds von Clippy in Pixeln
 const BREITE = 124;
 const HOEHE = 93;
-// So weit ragt Clippy von oben rechts in das Eingabefeld hinein
-const UEBERLAPPUNG = { x: 20, y: 26 };
+// So weit ragt Clippy von oben rechts in das Eingabefeld hinein. Höchstens 6 px nach unten,
+// damit der Knopf zum Leeren (8 px unter der Oberkante) klickbar bleibt.
+const UEBERLAPPUNG = { x: 20, y: 6 };
 // Wird so weit gescrollt, hat sich Clippy vom Feld gelöst und verschwindet
 const MAX_SCROLL_PX = 80;
 const TEXT =
