@@ -1,7 +1,7 @@
 // Darstellung der Ergebnisse als Karten je Verkehrsmittel.
 
 import { h } from './dom.js';
-import { euro, satz, km, tage, tagen, buechergeld } from './format.js';
+import { euro, satz, km, tage, tagen, buechergeld, stundenMinuten } from './format.js';
 import { VERANSTALTUNG } from '../rules/veranstaltung.js';
 import { AUSLANDSVORHABEN } from '../rules/auslandsvorhaben.js';
 
@@ -29,6 +29,24 @@ function posten({ titel, betrag, vorsatz = null, neben = null, texte = [], steue
 
 function hinweis(titel, text, art = 'info') {
   return h('div', { class: `meldung meldung-${art}`, role: art === 'warnung' ? 'alert' : null }, h('strong', {}, titel), ' ', text);
+}
+
+// Begründung unter dem Haken "Bahn länger als 12 Stunden", siehe bahnLage in app.js
+const FAHRPLAN_TEXT = {
+  laedt: () => 'Fahrplan wird geprüft …',
+  // stundenMinuten endet schon mit dem Punkt von "Min."
+  fertig: ({ stunden, link }) => [
+    `Schnellste Bahn- oder Busverbindung laut Fahrplan: ${stundenMinuten(stunden)} `,
+    h('a', { href: link, target: '_blank', rel: 'noopener' }, 'Verbindung ansehen'),
+  ],
+  keine: () => 'Im Fahrplan keine Verbindung gefunden, bitte selbst prüfen :(.',
+  fehler: () => 'Der Fahrplan ist gerade nicht erreichbar (oh no!), bitte selbst prüfen.',
+};
+
+function bahnHinweis(hinweis) {
+  if (!hinweis) return null;
+  if (hinweis.grund === 'ausserhalb') return 'Das Ziel liegt außerhalb des Interrail- und Fernbus-Raums.';
+  return FAHRPLAN_TEXT[hinweis.status](hinweis.verbindung);
 }
 
 function schalter({ id, beschriftung, an, onAendern, info = null }) {
@@ -165,7 +183,7 @@ export function zeigeVeranstaltung(r, z, aktionen) {
           beschriftung: `Die einfache Bahn- oder Busfahrt dauert länger als ${V.flug.mindestBahnStunden} Stunden`,
           an: z.bahnUeber12h,
           onAendern: aktionen.onBahnUeber12h,
-          info: z.bahnHinweis,
+          info: bahnHinweis(z.bahnHinweis),
         })
       : null;
     const dauerText = `Pro Veranstaltungstag höchstens ${km(V.flug.kmProTag)}: Für ${km(r.kmEinfach)} ist ein Aufenthalt von mindestens ${tagen(f.mindestTage)} nötig.`;
@@ -289,7 +307,7 @@ export function zeigeAuslandsvorhaben(r, ziel, z, aktionen) {
         beschriftung: `Bahn oder Fernbus bräuchten länger als ${A.europaFlugMindestBahnStunden} Stunden, oder das Ziel liegt außerhalb des Interrail- und Fernbus-Raums`,
         an: z.bahnUeber12h,
         onAendern: aktionen.onBahnUeber12h,
-        info: z.bahnHinweis,
+        info: bahnHinweis(z.bahnHinweis),
       }),
       texte,
     });

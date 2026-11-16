@@ -4,7 +4,7 @@ import { zeigeVeranstaltung, zeigeAuslandsvorhaben, hinweis } from './ui/ergebni
 import { h } from './ui/dom.js';
 import { konfetti } from './ui/konfetti.js';
 import { zeigeAdressTipp, versteckeClippy } from './ui/clippy.js';
-import { km, stundenMinuten } from './ui/format.js';
+import { km } from './ui/format.js';
 import { berechneRoute } from './geo/route.js';
 import { bestimmeGebiet } from './geo/gebiet.js';
 import { schnellsteVerbindung } from './geo/fahrplan.js';
@@ -63,7 +63,7 @@ const zustand = {
   // sonst ergibt er sich aus Fahrplan und Interrail-Raum (siehe bahnLage)
   bahnManuell: false,
   bahnUeber12h: false,
-  fahrplan: { schluessel: null, status: null, stunden: null, link: null },
+  fahrplan: { schluessel: null, status: null, verbindung: null },
   route: null,
   routeSchluessel: null,
   routeLaedt: false,
@@ -302,10 +302,10 @@ function pruefeFahrplan(startG, zielG) {
   if (!fahrplanNoetig(startG, zielG) || zustand.fahrplan.schluessel === schluessel) return;
   if (fahrplanAbbruch) fahrplanAbbruch.abort();
   fahrplanAbbruch = new AbortController();
-  zustand.fahrplan = { schluessel, status: 'laedt', stunden: null, link: null };
+  zustand.fahrplan = { schluessel, status: 'laedt', verbindung: null };
   const fertig = (status, verbindung = null) => {
     if (zustand.fahrplan.schluessel !== schluessel) return;
-    zustand.fahrplan = { schluessel, status, stunden: verbindung?.stunden ?? null, link: verbindung?.link ?? null };
+    zustand.fahrplan = { schluessel, status, verbindung };
     zeichne();
   };
   schnellsteVerbindung(zustand.start, zustand.ziel, { signal: fahrplanAbbruch.signal })
@@ -313,28 +313,20 @@ function pruefeFahrplan(startG, zielG) {
     .catch((fehler) => fehler.name !== 'AbortError' && fertig('fehler'));
 }
 
-const FAHRPLAN_HINWEIS = {
-  laedt: () => 'Fahrplan wird geprüft …',
-  // stundenMinuten endet schon mit dem Punkt von "Min."
-  fertig: ({ stunden, link }) => [
-    `Schnellste Bahn- oder Busverbindung laut Fahrplan: ${stundenMinuten(stunden)} `,
-    h('a', { href: link, target: '_blank', rel: 'noopener' }, 'Verbindung ansehen'),
-  ],
-  keine: () => 'Im Fahrplan keine Verbindung gefunden, bitte selbst prüfen :(.',
-  fehler: () => 'Der Fahrplan ist gerade nicht erreichbar (oh no!), bitte selbst prüfen.',
-};
-
-/** Wirksamer Wert des Hakens und die Begründung, die darunter angezeigt wird. */
+/**
+ * Wirksamer Wert des Hakens und der Grund dafür. Den Text dazu baut ergebnis.js:
+ * { grund: 'ausserhalb' } oder { grund: 'fahrplan', status, verbindung }.
+ */
 function bahnLage(zielG) {
   const { fahrplan, routeSchluessel } = zustand;
   const ausserhalb = zielAusserhalbBahnRaum(zielG);
   const aktuell = fahrplan.schluessel === routeSchluessel && fahrplan.status;
   const hinweis = ausserhalb
-    ? 'Das Ziel liegt außerhalb des Interrail- und Fernbus-Raums.'
+    ? { grund: 'ausserhalb' }
     : aktuell
-      ? FAHRPLAN_HINWEIS[fahrplan.status](fahrplan)
+      ? { grund: 'fahrplan', status: fahrplan.status, verbindung: fahrplan.verbindung }
       : null;
-  const automatisch = ausserhalb || (aktuell === 'fertig' && fahrplan.stunden > 12);
+  const automatisch = ausserhalb || (aktuell === 'fertig' && fahrplan.verbindung.stunden > 12);
   return { wert: zustand.bahnManuell ? zustand.bahnUeber12h : automatisch, hinweis };
 }
 
