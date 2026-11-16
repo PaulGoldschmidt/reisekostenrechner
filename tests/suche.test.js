@@ -7,6 +7,7 @@ test('Adressen werden an Hausnummer oder Straßenwort erkannt', () => {
   assert.equal(istAdresse('Jägerstraße'), true);
   assert.equal(istAdresse('Edmund-Siemers-Allee'), true);
   assert.equal(istAdresse('Berliner Tor 21'), true);
+  assert.equal(istAdresse('Berliner Tor'), false);
   assert.equal(istAdresse('Leipzig'), false);
   assert.equal(istAdresse('Frankfurt am Main'), false);
 });

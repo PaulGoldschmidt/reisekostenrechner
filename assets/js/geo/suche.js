@@ -5,7 +5,8 @@
 // - Orte ("Leipzig"): nur Städte, Dörfer und Ortsteile
 // - Adressen ("Jägerstraße 22, Berlin"): sobald eine Hausnummer oder ein Straßenwort vorkommt
 
-const PHOTON_URL = 'https://photon.komoot.io/api/';
+export const PHOTON_URL = 'https://photon.komoot.io/api/';
+const MAX_VORSCHLAEGE = 6;
 
 // Nur Orte, keine Straßen, Gebäude oder Verwaltungsgrenzen.
 const ORTSARTEN = new Set([
@@ -13,7 +14,7 @@ const ORTSARTEN = new Set([
   'suburb', 'quarter', 'locality', 'island', 'islet',
 ]);
 
-const STRASSENWORT = /(stra(ss|ß)e|str\.|weg|platz|allee|gasse|ring|damm|ufer|chaussee|steig|pfad|promenade|berliner tor)\b/i;
+const STRASSENWORT = /(stra(ss|ß)e|str\.|weg|platz|allee|gasse|ring|damm|ufer|chaussee|steig|pfad|promenade)\b/i;
 
 /** Ob eine Eingabe wie eine Adresse aussieht. */
 export function istAdresse(anfrage) {
@@ -62,11 +63,11 @@ export function adresseAusPhoton(p, lon, lat) {
 
 /**
  * @param {string} anfrage
- * @param {{signal?: AbortSignal, max?: number}} [optionen]
+ * @param {{signal?: AbortSignal}} [optionen]
  * @returns {Promise<Array<{art: string, titel: string, zusatz: string, name: string, label: string,
  *                          lat: number, lon: number, land: string}>>}
  */
-export async function sucheOrte(anfrage, { signal, max = 6 } = {}) {
+export async function sucheOrte(anfrage, { signal } = {}) {
   const q = anfrage.trim();
   if (q.length < 2) return [];
   const adresse = istAdresse(q);
@@ -98,7 +99,7 @@ export async function sucheOrte(anfrage, { signal, max = 6 } = {}) {
     if (!v || gesehen.has(v.label)) continue;
     gesehen.add(v.label);
     vorschlaege.push(v);
-    if (vorschlaege.length >= max) break;
+    if (vorschlaege.length >= MAX_VORSCHLAEGE) break;
   }
   return vorschlaege;
 }

@@ -5,18 +5,22 @@
 //    der Wikidata-Koordinate
 //
 // Aufruf: npm run hochschulen   (dauert wegen der Pause zwischen Photon-Anfragen einige Minuten)
+// Probelauf: NUR="Universität Hamburg,KIT" npm run hochschulen gibt nur passende Einträge aus
 //
 // Die Hochschulliste der HRK (Hochschulkompass) ist nur für den persönlichen Gebrauch frei
 // und wird deshalb nicht verwendet.
 
 import { writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { luftlinieKm } from '../assets/js/geo/route.js';
+import { normal, woerter } from '../assets/js/geo/hochschulsuche.js';
+import { PHOTON_URL } from '../assets/js/geo/suche.js';
 
 const ZIEL = fileURLToPath(new URL('../assets/js/data/hochschulen.js', import.meta.url));
 const KENNUNG = 'reisekostenrechner (https://github.com/PaulGoldschmidt/reisekostenrechner)';
 const PAUSE_MS = 1100;
 const MAX_ABSTAND_KM = 3;
-const DEUTSCHLAND = [5.8, 47.2, 15.1, 55.1]; // West, Süd, Ost, Nord
+export const DEUTSCHLAND = [5.8, 47.2, 15.1, 55.1]; // West, Süd, Ost, Nord
 
 // Arten von Hochschulen in Wikidata (Fakultäten, Akademien der Wissenschaften usw. bewusst nicht)
 const ARTEN = [
@@ -68,23 +72,29 @@ const pause = (ms) => new Promise((r) => setTimeout(r, ms));
 /** Gedankenstriche und Mittelpunkte aus Namen entfernen, Leerzeichen bereinigen. */
 export function bereinige(text) {
   return String(text || '')
-    .replace(/\s*[–—]\s*/g, ', ')
-    .replace(/\s*[·•⋅]\s*/g, ' ')
+    .replace(/\s*[\u2013\u2014]\s*/g, ', ')
+    .replace(/\s*[\u00B7\u2022\u22C5]\s*/g, ' ')
     .replace(/\s+/g, ' ')
     .replace(/^,\s*|,\s*$/g, '')
     .trim();
 }
 
-const normal = (t) =>
-  bereinige(t).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ß/g, 'ss');
+// Wörter ab drei Buchstaben, damit "der", "für" und Ähnliches den Namensvergleich nicht verfälschen
+const langeWoerter = (t) => woerter(bereinige(t)).filter((w) => w.length > 2);
 
-const woerter = (t) => normal(t).split(/[^a-z0-9]+/).filter((w) => w.length > 2);
-
-function abstandKm(a, b) {
-  const r = Math.PI / 180;
-  const x = (b.lon - a.lon) * r * Math.cos(((a.lat + b.lat) / 2) * r);
-  const y = (b.lat - a.lat) * r;
-  return Math.hypot(x, y) * 6371;
+/**
+ * Entfernt doppelte Teile einer Anschrift, etwa wenn die Straßenangabe aus Wikidata den Ort
+ * schon enthält: "Grabengasse 1, 69117 Heidelberg, Heidelberg" wird zu "Grabengasse 1, 69117 Heidelberg".
+ */
+export function ohneDoppelteTeile(anschrift) {
+  const doppelt = (teil, vorher) =>
+    vorher.some((v) => normal(v) === normal(teil) || normal(v).replace(/^\d{4,5}\s+/, '') === normal(teil));
+  return anschrift
+    .split(',')
+    .map((t) => t.trim())
+    .filter(Boolean)
+    .reduce((liste, teil) => (doppelt(teil, liste) ? liste : [...liste, teil]), [])
+    .join(', ');
 }
 
 async function holeWikidata() {
@@ -120,7 +130,7 @@ async function holeWikidata() {
 }
 
 async function photon(name, nahe) {
-  const url = new URL('https://photon.komoot.io/api/');
+  const url = new URL(PHOTON_URL);
   url.searchParams.set('q', name);
   url.searchParams.set('limit', '8');
   url.searchParams.set('lang', 'de');
@@ -139,15 +149,15 @@ async function photon(name, nahe) {
 }
 
 /** Bewertet einen Photon-Treffer als Anschrift für eine Hochschule. Höher ist besser. */
-export function bewerte(hochschule, treffer, nahe) {
+function bewerte(hochschule, treffer, nahe) {
   const p = treffer.properties || {};
   const [lon, lat] = treffer.geometry.coordinates;
   if ((p.countrycode || '').toUpperCase() !== 'DE') return -Infinity;
-  const abstand = nahe ? abstandKm(nahe, { lat, lon }) : 0;
+  const abstand = nahe ? luftlinieKm(nahe, { lat, lon }) : 0;
   if (abstand > MAX_ABSTAND_KM) return -Infinity;
 
-  const gesucht = new Set(woerter([hochschule.name, ...hochschule.aliase].join(' ')));
-  const gefunden = woerter(p.name);
+  const gesucht = new Set(langeWoerter([hochschule.name, ...hochschule.aliase].join(' ')));
+  const gefunden = langeWoerter(p.name);
   const passend = gefunden.filter((w) => gesucht.has(w)).length / Math.max(1, gefunden.length);
   if (!nahe && passend < 0.6) return -Infinity;
 
@@ -185,7 +195,7 @@ export function ohneUntereinheiten(liste) {
 }
 
 /** Ein Eintrag pro Zeile: kompakt und mit gut lesbaren Unterschieden in Git. */
-export function alsModul(liste) {
+function alsModul(liste) {
   return `export const HOCHSCHULEN = [\n${liste.map((h) => JSON.stringify(h)).join(',\n')}\n];\n`;
 }
 
@@ -193,7 +203,6 @@ async function main() {
   console.log('Wikidata abfragen ...');
   let liste = await holeWikidata();
   console.log(`${liste.length} Einrichtungen`);
-  // Probelauf: NUR="Hamburg,Bonn" npm run hochschulen gibt nur passende Einträge aus
   const nur = process.env.NUR ? process.env.NUR.split(',') : null;
   if (nur) liste = liste.filter((e) => nur.some((n) => e.name.includes(n)));
 
@@ -201,13 +210,14 @@ async function main() {
   let i = 0;
   for (const e of liste) {
     i++;
-    let treffer = [];
-    try {
-      treffer = await photon(e.name, e.coord);
-    } catch (fehler) {
-      console.warn(`  ${e.name}: ${fehler.message}`);
-    }
-    await pause(PAUSE_MS);
+    // Die Pause läuft parallel zur Anfrage: höchstens eine Anfrage pro Sekunde, ohne Leerlauf
+    const [treffer] = await Promise.all([
+      photon(e.name, e.coord).catch((fehler) => {
+        console.warn(`  ${e.name}: ${fehler.message}`);
+        return [];
+      }),
+      pause(PAUSE_MS),
+    ]);
 
     // Ohne Straße muss der Ort des Treffers zu Wikidata passen. So fallen OSM-Fehler
     // wie eine falsche Postleitzahl an einem Campusgelände (KIT) heraus.
@@ -225,7 +235,8 @@ async function main() {
       .sort((a, b) => b.punkte - a.punkte)[0];
 
     const p = bester ? bester.t.properties : {};
-    const koord = e.coord || (bester ? { lon: bester.t.geometry.coordinates[0], lat: bester.t.geometry.coordinates[1] } : null);
+    const osm = bester ? { lon: bester.t.geometry.coordinates[0], lat: bester.t.geometry.coordinates[1] } : null;
+    const koord = e.coord || osm;
     if (!koord) {
       console.log(`  [${i}/${liste.length}] ohne Ort: ${e.name}`);
       continue;
@@ -235,19 +246,17 @@ async function main() {
     const strasse = p.street ? bereinige(`${p.street}${p.housenumber ? ` ${p.housenumber}` : ''}`) : e.strasse;
     const plz = p.postcode || e.plz || '';
     const ort = bereinige(p.city || [...e.orte][0] || '');
-    const anschrift = [strasse, [plz, ort].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+    const anschrift = ohneDoppelteTeile([strasse, [plz, ort].filter(Boolean).join(' ')].filter(Boolean).join(', '));
     // Mit vollständiger OSM-Anschrift deren Lage nutzen, damit Route und Anzeige zusammenpassen
-    const lage = p.street && p.housenumber && bester ? { lon: bester.t.geometry.coordinates[0], lat: bester.t.geometry.coordinates[1] } : koord;
+    const lage = p.street && p.housenumber ? osm : koord;
 
     ergebnis.push({
       id: e.id,
       name: e.name,
       kurz: waehleKurzname(e),
       aliase: [...new Set([...e.kurz, ...e.aliase])].filter((a) => a !== e.name).slice(0, 8),
-      ort,
       orte: [...new Set([ort, ...e.orte])].filter(Boolean),
       anschrift: anschrift || ort,
-      anschriftAusOsm: Boolean(p.street || p.postcode),
       lat: Math.round(lage.lat * 1e5) / 1e5,
       lon: Math.round(lage.lon * 1e5) / 1e5,
       hrk: e.hrk,
@@ -256,18 +265,16 @@ async function main() {
     if (i % 25 === 0) console.log(`  [${i}/${liste.length}] ${e.name}: ${anschrift}`);
   }
 
-  // Einträge außerhalb Deutschlands (falsch eingetragene Länder in Wikidata) entfernen
+  // Einträge ohne Anschrift oder außerhalb Deutschlands (falsches Land in Wikidata) entfernen
   const [west, sued, ost, nord] = DEUTSCHLAND;
   const inDeutschland = ergebnis.filter(
     (h) => h.anschrift && h.lon >= west && h.lon <= ost && h.lat >= sued && h.lat <= nord,
   );
-  const bereinigt = ohneUntereinheiten(inDeutschland);
-  console.log(`${ergebnis.length - bereinigt.length} Untereinheiten entfernt`);
-  ergebnis.length = 0;
-  ergebnis.push(...bereinigt);
-  ergebnis.sort((a, b) => a.name.localeCompare(b.name, 'de'));
+  const fertig = ohneUntereinheiten(inDeutschland).sort((a, b) => a.name.localeCompare(b.name, 'de'));
+  console.log(`${ergebnis.length - inDeutschland.length} ohne Anschrift oder außerhalb Deutschlands entfernt`);
+  console.log(`${inDeutschland.length - fertig.length} Untereinheiten entfernt`);
   if (nur) {
-    for (const h of ergebnis) console.log(`${h.kurz || '-'} | ${h.name} | ${h.anschrift} | ${h.lat},${h.lon} | hrk=${h.hrk} | ${h.studierende}`);
+    for (const h of fertig) console.log(`${h.kurz || '-'} | ${h.name} | ${h.anschrift} | ${h.lat},${h.lon} | hrk=${h.hrk} | ${h.studierende}`);
     return;
   }
   const heute = new Date().toISOString().slice(0, 10);
@@ -276,12 +283,12 @@ async function main() {
     '//',
     '// Quellen:',
     '// - Wikidata (CC0): Namen, Kurznamen, Koordinaten, Studierendenzahlen, HRK-Mitgliedschaft',
-    '// - OpenStreetMap über Photon: Anschriften (anschriftAusOsm), © OpenStreetMap-Mitwirkende,',
+    '// - OpenStreetMap über Photon: die meisten Anschriften, © OpenStreetMap-Mitwirkende,',
     '//   Open Database License (ODbL) 1.0, https://www.openstreetmap.org/copyright',
     '',
   ].join('\n');
-  writeFileSync(ZIEL, `${kopf}${alsModul(ergebnis)}`);
-  console.log(`${ergebnis.length} Hochschulen nach ${ZIEL} geschrieben`);
+  writeFileSync(ZIEL, `${kopf}${alsModul(fertig)}`);
+  console.log(`${fertig.length} Hochschulen nach ${ZIEL} geschrieben`);
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

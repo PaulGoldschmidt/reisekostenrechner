@@ -48,6 +48,7 @@ Das Verzeichnis in `assets/js/data/hochschulen.js` wird mit `npm run hochschulen
 npm test     # Tests mit dem Test-Runner von Node.js (ab Version 22)
 npm start    # lokaler Server auf http://localhost:8000
 npm run hochschulen   # Hochschulverzeichnis neu erzeugen (dauert einige Minuten)
+NUR="Universität Hamburg" npm run hochschulen   # Probelauf für einzelne Hochschulen, ohne zu schreiben
 ```
 
 Bei jedem Push auf `main` laufen die Tests, danach wird die Seite über GitHub Actions auf

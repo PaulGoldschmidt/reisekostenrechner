@@ -1,14 +1,21 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { bereinige, ohneUntereinheiten } from '../scripts/hochschulen.mjs';
+import { bereinige, ohneDoppelteTeile, ohneUntereinheiten } from '../scripts/hochschulen.mjs';
 
 test('Namen ohne Gedankenstriche und Mittelpunkte', () => {
-  assert.equal(bereinige('HFH · Hamburger Fern-Hochschule'), 'HFH Hamburger Fern-Hochschule');
+  assert.equal(bereinige('HFH \u00B7 Hamburger Fern-Hochschule'), 'HFH Hamburger Fern-Hochschule');
   assert.equal(
-    bereinige('MSH Medical School Hamburg – Fachhochschule für Gesundheit und Medizin'),
+    bereinige('MSH Medical School Hamburg \u2013 Fachhochschule für Gesundheit und Medizin'),
     'MSH Medical School Hamburg, Fachhochschule für Gesundheit und Medizin',
   );
   assert.equal(bereinige('  Universität   Bonn '), 'Universität Bonn');
+});
+
+test('Doppelte Teile einer Anschrift werden entfernt', () => {
+  assert.equal(ohneDoppelteTeile('Grabengasse 1, 69117 Heidelberg, Heidelberg'), 'Grabengasse 1, 69117 Heidelberg');
+  assert.equal(ohneDoppelteTeile('Hermannswerder 7, 14473 Potsdam, 14473 Potsdam'), 'Hermannswerder 7, 14473 Potsdam');
+  assert.equal(ohneDoppelteTeile('Berliner Straße 5, 10115 Berlin'), 'Berliner Straße 5, 10115 Berlin');
+  assert.equal(ohneDoppelteTeile('Karlsruhe'), 'Karlsruhe');
 });
 
 test('Untereinheiten werden entfernt, HRK-Mitglieder bleiben', () => {

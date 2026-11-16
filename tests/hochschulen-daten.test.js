@@ -4,14 +4,16 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { HOCHSCHULEN } from '../assets/js/data/hochschulen.js';
 import { bereiteVor, sucheHochschulen } from '../assets/js/geo/hochschulsuche.js';
+import { DEUTSCHLAND } from '../scripts/hochschulen.mjs';
 
 test('Verzeichnis ist vollständig und liegt in Deutschland', () => {
   assert.ok(HOCHSCHULEN.length > 400, `nur ${HOCHSCHULEN.length} Einträge`);
   assert.ok(HOCHSCHULEN.filter((h) => h.hrk).length > 200);
+  const [west, sued, ost, nord] = DEUTSCHLAND;
   const ids = new Set();
   for (const h of HOCHSCHULEN) {
-    assert.ok(h.name && h.anschrift, h.id);
-    assert.ok(h.lat >= 47.2 && h.lat <= 55.1 && h.lon >= 5.8 && h.lon <= 15.1, `${h.name}: ${h.lat},${h.lon}`);
+    assert.ok(h.name && h.anschrift && h.orte.length, h.id);
+    assert.ok(h.lat >= sued && h.lat <= nord && h.lon >= west && h.lon <= ost, `${h.name}: ${h.lat},${h.lon}`);
     assert.ok(!ids.has(h.id), `doppelt: ${h.id}`);
     ids.add(h.id);
   }
