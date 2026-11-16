@@ -2,6 +2,7 @@ import { Ortsfeld } from './ui/ortsfeld.js';
 import { erstelleKarte } from './ui/karte.js';
 import { zeigeVeranstaltung, zeigeAuslandsvorhaben, hinweis } from './ui/ergebnis.js';
 import { h } from './ui/dom.js';
+import { konfetti } from './ui/konfetti.js';
 import { km } from './ui/format.js';
 import { berechneRoute } from './geo/route.js';
 import { bestimmeGebiet } from './geo/gebiet.js';
@@ -61,6 +62,7 @@ const zustand = {
 };
 
 let routeAbbruch = null;
+const gefeiert = new Set();
 const karte = erstelleKarte(el.karte);
 
 // URL
@@ -185,10 +187,10 @@ function zeichneErgebnis(startG, zielG, mitZeitraum) {
     meldungen.push(hinweis('Zeitraum prüfen.', 'Das Ende liegt vor dem Beginn.', 'warnung'));
   }
 
-  if (!start || !ziel) return [];
+  if (!start || !ziel) return { elemente: [], hoechster: 0 };
 
   if (anlass === 'veranstaltung') {
-    if (!route || route.art === 'fehler') return [];
+    if (!route || route.art === 'fehler') return { elemente: [], hoechster: 0 };
     const r = berechneVeranstaltung({
       kmEinfach: route.km,
       ausland: !(startG.inland && zielG.inland),
@@ -198,15 +200,18 @@ function zeichneErgebnis(startG, zielG, mitZeitraum) {
       bahnUeber12h: zustand.bahnUeber12h,
       aufenthaltTage: zeitraum ? zeitraum.tage : null,
     });
-    return [kopf, ...meldungen, ...zeigeVeranstaltung(r, zustand, aktionen)];
+    return {
+      elemente: [kopf, ...meldungen, ...zeigeVeranstaltung(r, zustand, aktionen)],
+      hoechster: Math.max(r.bahn.verfuegbar ? r.bahn.betrag : 0, r.auto.verfuegbar ? r.auto.betrag : 0, r.flug.mitKompensation),
+    };
   }
 
   // Auslandsvorhaben
   if (zielG.inland) {
-    return [kopf, hinweis('Ziel im Inland.', 'Ein Auslandsvorhaben braucht einen Zielort außerhalb Deutschlands. Für Veranstaltungen oben auf „Veranstaltung“ umschalten.', 'warnung')];
+    return { hoechster: 0, elemente: [kopf, hinweis('Ziel im Inland.', 'Ein Auslandsvorhaben braucht einen Zielort außerhalb Deutschlands. Für Veranstaltungen oben auf „Veranstaltung“ umschalten.', 'warnung')] };
   }
   if (!zielG.satz) {
-    return [kopf, hinweis('Kein Satz hinterlegt.', `Für ${zielG.name} enthält die DAAD-Liste keinen Reisekostenzuschuss. Bitte bei der Studienstiftung nachfragen.`, 'warnung')];
+    return { hoechster: 0, elemente: [kopf, hinweis('Kein Satz hinterlegt.', `Für ${zielG.name} enthält die DAAD-Liste keinen Reisekostenzuschuss. Bitte bei der Studienstiftung nachfragen.`, 'warnung')] };
   }
   const r = berechneAuslandsvorhaben({
     satz: zielG.satz,
@@ -220,7 +225,26 @@ function zeichneErgebnis(startG, zielG, mitZeitraum) {
     zeitraum,
     bahnUeber12h: zustand.bahnUeber12h,
   });
-  return [kopf, ...meldungen, ...zeigeAuslandsvorhaben(r, zielG, zustand, aktionen)];
+  return {
+    elemente: [kopf, ...meldungen, ...zeigeAuslandsvorhaben(r, zielG, zustand, aktionen)],
+    hoechster: Math.max(r.land.verfuegbar ? r.land.betrag : 0, r.flug.art === 'europa' ? r.flug.mitKompensation : r.flug.voll),
+  };
+}
+
+// Konfetti, sobald für eine neue Strecke ein Zuschuss berechnet ist.
+// Nicht bei Änderungen an Mitfahrenden oder Haken, nur einmal je Strecke und Anlass.
+function feiere(hoechster) {
+  const { route, routeLaedt, routeSchluessel, anlass } = zustand;
+  if (routeLaedt || !route || route.art === 'fehler' || !(hoechster > 0)) return;
+  const schluessel = `${anlass}|${routeSchluessel}`;
+  if (gefeiert.has(schluessel)) return;
+  gefeiert.add(schluessel);
+  const titel = el.ergebnis.querySelector('.ergebnis-titel');
+  const box = titel ? titel.getBoundingClientRect() : null;
+  const imBild = box && box.top > 40 && box.top < window.innerHeight * 0.85;
+  konfetti(imBild
+    ? { x: box.left + Math.min(box.width, 560) / 2, y: box.top }
+    : { x: window.innerWidth / 2, y: window.innerHeight * 0.45 });
 }
 
 function zeichneAnlass() {
@@ -256,7 +280,8 @@ function zeichne() {
 
   // Fokus über das Neuzeichnen hinweg erhalten
   const fokus = document.activeElement && el.ergebnis.contains(document.activeElement) ? document.activeElement.dataset : null;
-  el.ergebnis.replaceChildren(...zeichneErgebnis(startG, zielG, mitZeitraum));
+  const { elemente, hoechster } = zeichneErgebnis(startG, zielG, mitZeitraum);
+  el.ergebnis.replaceChildren(...elemente);
   if (fokus && fokus.fokus) {
     let ziel2 = el.ergebnis.querySelector(`[data-fokus="${fokus.fokus}"]`);
     if (ziel2 && ziel2.disabled && fokus.fokusAlt) ziel2 = el.ergebnis.querySelector(`[data-fokus="${fokus.fokusAlt}"]`);
@@ -265,6 +290,7 @@ function zeichne() {
 
   karte.zeige(start, ziel, zustand.routeLaedt ? null : zustand.route);
   schreibeUrl();
+  feiere(hoechster);
 }
 
 // Ereignisse
