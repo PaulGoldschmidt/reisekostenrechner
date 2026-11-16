@@ -151,5 +151,9 @@ export function berechneAuslandsvorhaben({
     unterAchtWochen: tage !== null && tage < A.achtWochenTage,
     land,
     flug,
+    hoechsterZuschuss: Math.max(
+      land.verfuegbar ? land.betrag : 0,
+      flug.art === 'europa' ? flug.mitKompensation : flug.voll,
+    ),
   };
 }

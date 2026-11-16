@@ -208,7 +208,7 @@ function zeichneErgebnis(startG, zielG, mitZeitraum) {
     });
     return {
       elemente: [kopf, ...meldungen, ...zeigeVeranstaltung(r, zustand, aktionen)],
-      hoechster: Math.max(r.bahn.verfuegbar ? r.bahn.betrag : 0, r.auto.verfuegbar ? r.auto.betrag : 0, r.flug.mitKompensation),
+      hoechster: r.hoechsterZuschuss,
     };
   }
 
@@ -233,7 +233,7 @@ function zeichneErgebnis(startG, zielG, mitZeitraum) {
   });
   return {
     elemente: [kopf, ...meldungen, ...zeigeAuslandsvorhaben(r, zielG, zustand, aktionen)],
-    hoechster: Math.max(r.land.verfuegbar ? r.land.betrag : 0, r.flug.art === 'europa' ? r.flug.mitKompensation : r.flug.voll),
+    hoechster: r.hoechsterZuschuss,
   };
 }
 
