@@ -11,14 +11,22 @@ import { istDesktop, mitMaus, reduzierteBewegung } from './medien.js';
 export const BASIS = 'https://cdn.jsdelivr.net/npm/clippyjs@0.1.0/dist/';
 const SCHLUESSEL = 'reisekostenrechner:clippy';
 const SICHTBAR_MS = 14000;
+// Größe eines Einzelbilds von Clippy in Pixeln
+const BREITE = 124;
+const HOEHE = 93;
+// So weit ragt Clippy von oben rechts in das Eingabefeld hinein
+const UEBERLAPPUNG = { x: 20, y: 26 };
+// Wird so weit gescrollt, hat sich Clippy vom Feld gelöst und verschwindet
+const MAX_SCROLL_PX = 80;
 const TEXT =
-  'Es sieht so aus, als hätten Sie nur einen Ort eingegeben. ' +
+  'Es sieht so aus, als hättest du nur einen Ort eingegeben. ' +
   'Mit der genauen Adresse, etwa „Jägerstraße 22, Berlin“, wird die Berechnung genauer.';
 
 let agent = null;
 let gestartet = false;
 // Wird während des Ladens auf false gesetzt, wenn Clippy doch nicht mehr erscheinen soll
 let erwuenscht = false;
+let beiScroll = null;
 
 function schonGezeigt() {
   try {
@@ -37,7 +45,7 @@ function merkeGezeigt() {
 }
 
 /**
- * Zeigt Clippy neben dem Eingabefeld mit dem Hinweis auf die genaue Adresse.
+ * Zeigt Clippy am Eingabefeld mit dem Hinweis auf die genaue Adresse.
  * @param {HTMLElement} feld Eingabefeld des Veranstaltungsorts
  */
 export async function zeigeAdressTipp(feld) {
@@ -71,9 +79,13 @@ export async function zeigeAdressTipp(feld) {
   }
   agent = geladen;
 
-  // Rechts neben dem Feld, etwas höher, am Übergang zur Karte
+  // Oben rechts auf dem Feld sitzend, leicht überlappend und noch in der linken Spalte.
+  // Clippy ist fest im Fenster positioniert, deshalb verschwindet er beim Scrollen.
   const r = feld.getBoundingClientRect();
-  agent.moveTo(r.right + 16, Math.max(16, r.top - 40), 0);
+  agent.moveTo(r.right - BREITE + UEBERLAPPUNG.x, Math.max(8, r.top - HOEHE + UEBERLAPPUNG.y), 0);
+  const startY = window.scrollY;
+  beiScroll = () => Math.abs(window.scrollY - startY) > MAX_SCROLL_PX && versteckeClippy();
+  window.addEventListener('scroll', beiScroll, { passive: true });
   agent.show();
   if (agent.hasAnimation('GetAttention')) agent.play('GetAttention');
   agent.speak(TEXT);
@@ -83,6 +95,8 @@ export async function zeigeAdressTipp(feld) {
 /** Lässt Clippy verschwinden, etwa wenn das Feld erneut bearbeitet wird. */
 export function versteckeClippy() {
   erwuenscht = false;
+  if (beiScroll) window.removeEventListener('scroll', beiScroll);
+  beiScroll = null;
   if (!agent) return;
   const a = agent;
   agent = null;
