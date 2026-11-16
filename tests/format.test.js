@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { euro, km, buechergeld, tage, tagen } from '../assets/js/ui/format.js';
+import { euro, km, buechergeld, tage, tagen, stundenMinuten } from '../assets/js/ui/format.js';
 
 // Intl trennt Zahl und Währung mit einem geschützten Leerzeichen
 const ohneNbsp = (t) => t.replace(/\u00A0/g, ' ');
@@ -26,6 +26,11 @@ test('Büchergeld: wie oft 300 Euro in den angezeigten Betrag passen, eine Nachk
   assert.equal(buechergeld(867.5), 'Das sind 2,9-mal Büchergeld');
   assert.equal(buechergeld(900), 'Das sind 3-mal Büchergeld');
   assert.equal(buechergeld(0), 'Das sind 0-mal Büchergeld');
+});
+
+test('Fahrzeit in Stunden und Minuten', () => {
+  assert.equal(stundenMinuten(14.1), '14 Std. 6 Min.');
+  assert.equal(stundenMinuten(7), '7 Std. 0 Min.');
 });
 
 test('Tage im Nominativ und Dativ', () => {

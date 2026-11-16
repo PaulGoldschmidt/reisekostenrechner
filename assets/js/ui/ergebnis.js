@@ -31,8 +31,8 @@ function hinweis(titel, text, art = 'info') {
   return h('div', { class: `meldung meldung-${art}`, role: art === 'warnung' ? 'alert' : null }, h('strong', {}, titel), ' ', text);
 }
 
-function schalter({ id, beschriftung, an, onAendern }) {
-  return h(
+function schalter({ id, beschriftung, an, onAendern, info = null }) {
+  const kasten = h(
     'label',
     { class: 'schalter', for: id },
     h('input', {
@@ -44,6 +44,9 @@ function schalter({ id, beschriftung, an, onAendern }) {
     }),
     h('span', {}, beschriftung),
   );
+  // Begründung für den automatisch gesetzten Haken, etwa die Fahrzeit laut Fahrplan
+  if (!info) return kasten;
+  return h('div', { class: 'schalter-gruppe' }, kasten, h('p', { class: 'schalter-info' }, info));
 }
 
 function zaehler({ wert, max = 8, onAendern }) {
@@ -162,6 +165,7 @@ export function zeigeVeranstaltung(r, z, aktionen) {
           beschriftung: `Die einfache Bahn- oder Busfahrt dauert länger als ${V.flug.mindestBahnStunden} Stunden`,
           an: z.bahnUeber12h,
           onAendern: aktionen.onBahnUeber12h,
+          info: z.bahnHinweis,
         })
       : null;
     const dauerText = `Pro Veranstaltungstag höchstens ${km(V.flug.kmProTag)}: Für ${km(r.kmEinfach)} ist ein Aufenthalt von mindestens ${tagen(f.mindestTage)} nötig.`;
@@ -288,6 +292,7 @@ export function zeigeAuslandsvorhaben(r, ziel, z, aktionen) {
         beschriftung: `Bahn oder Fernbus bräuchten länger als ${A.europaFlugMindestBahnStunden} Stunden, oder das Ziel liegt außerhalb des Interrail- und Fernbus-Raums`,
         an: z.bahnUeber12h,
         onAendern: aktionen.onBahnUeber12h,
+        info: z.bahnHinweis,
       }),
       texte,
     });
