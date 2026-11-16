@@ -1,6 +1,8 @@
 // Kleines Konfetti auf einem Canvas, ohne externe Bibliothek.
 // Wird übersprungen, wenn im System reduzierte Bewegung eingestellt ist.
 
+import { reduzierteBewegung } from './medien.js';
+
 const FARBEN = ['#c8f169', '#ece9e1', '#ffc670', '#8cc8ff', '#ff9f8a'];
 const ANZAHL = 140;
 const DAUER_MS = 2800;
@@ -12,19 +14,18 @@ const LUFTWIDERSTAND = 0.985;
  * @param {{x: number, y: number}} ursprung Punkt in Fensterkoordinaten
  */
 export function konfetti(ursprung) {
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (reduzierteBewegung()) return;
 
   const breite = window.innerWidth;
   const hoehe = window.innerHeight;
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  // Einfache Auflösung genügt für kleine, schnell bewegte Rechtecke und spart Speicher
   const canvas = document.createElement('canvas');
   canvas.className = 'konfetti';
   canvas.setAttribute('aria-hidden', 'true');
-  canvas.width = breite * dpr;
-  canvas.height = hoehe * dpr;
+  canvas.width = breite;
+  canvas.height = hoehe;
   document.body.append(canvas);
   const ctx = canvas.getContext('2d');
-  ctx.scale(dpr, dpr);
 
   const teile = Array.from({ length: ANZAHL }, () => {
     // Kegel nach oben, leicht gestreut
@@ -54,6 +55,7 @@ export function konfetti(ursprung) {
     const verlauf = (jetzt - start) / DAUER_MS;
     ctx.clearRect(0, 0, breite, hoehe);
     ctx.globalAlpha = Math.max(0, Math.min(1, (1 - verlauf) / 0.35));
+    let sichtbar = 0;
     for (const t of teile) {
       t.vy += SCHWERKRAFT * f;
       t.vx *= LUFTWIDERSTAND ** f;
@@ -62,6 +64,8 @@ export function konfetti(ursprung) {
       t.y += t.vy * f;
       t.drehung += t.drehtempo * f;
       t.phase += 0.12 * f;
+      if (t.y > hoehe + 20) continue;
+      sichtbar++;
       ctx.save();
       ctx.translate(t.x + Math.sin(t.phase) * 2, t.y);
       ctx.rotate(t.drehung);
@@ -71,7 +75,8 @@ export function konfetti(ursprung) {
       ctx.fillRect(-t.breite / 2, -t.hoehe / 2, t.breite, t.hoehe);
       ctx.restore();
     }
-    if (verlauf < 1) requestAnimationFrame(bild);
+    // Ende nach Ablauf der Zeit oder sobald alles aus dem Bild gefallen ist
+    if (verlauf < 1 && sichtbar > 0) requestAnimationFrame(bild);
     else canvas.remove();
   }
   requestAnimationFrame(bild);

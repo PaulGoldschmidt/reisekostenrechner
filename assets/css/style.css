@@ -738,7 +738,8 @@ input::placeholder {
   }
 }
 
-/* Desktop: Eingaben und Ergebnisse links, Karte rechts über die volle Höhe */
+/* Desktop: Eingaben und Ergebnisse links, Karte rechts über die volle Höhe.
+   Gleicher Wert wie DESKTOP in assets/js/ui/medien.js. */
 
 @media (min-width: 1024px) {
   :root {

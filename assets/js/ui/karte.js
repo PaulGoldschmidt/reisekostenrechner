@@ -1,11 +1,11 @@
 // Karte mit MapLibre GL JS und Kacheln von OpenFreeMap im eigenen dunklen Farbschema.
 
 import { faerbeStil, FARBEN, stadtpunkt } from './kartenstil.js';
+import { istDesktop } from './medien.js';
 
 const STIL_URL = 'https://tiles.openfreemap.org/styles/dark';
 // Startansicht: 50,707 Grad Nord, 7,149 Grad Ost
 const START = { center: [7.149, 50.707], zoom: 10 };
-const DESKTOP = '(min-width: 1024px)';
 
 const DEUTSCH = {
   'Map.Title': 'Karte',
@@ -126,7 +126,7 @@ export function erstelleKarte(container) {
         new maplibregl.LngLatBounds(route.geometrie[0], route.geometrie[0]),
       );
       // Auf dem Desktop liegt oben links die Streckenangabe über der Karte
-      const abstand = window.matchMedia(DESKTOP).matches
+      const abstand = istDesktop()
         ? { top: 110, right: 70, bottom: 60, left: 60 }
         : { top: 36, right: 48, bottom: 36, left: 36 };
       karte.fitBounds(grenzen, { padding: abstand, maxZoom: 11, duration: 600 });
