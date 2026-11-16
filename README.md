@@ -4,10 +4,6 @@ Inoffizieller Rechner für Reisekostenzuschüsse der Studienstiftung des deutsch
 Studienort und Ziel eingeben, der Zuschuss für jedes Verkehrsmittel wird sofort berechnet
 und die Strecke auf einer Karte angezeigt.
 
-**Kein offizielles Angebot.** Dieses Projekt steht in keiner Verbindung zur Studienstiftung
-des deutschen Volkes. Alle Angaben ohne Gewähr, verbindlich sind allein die Regelungen und
-Entscheidungen der Studienstiftung.
-
 ## Was berechnet wird
 
 **Veranstaltung:** Fahrtkostenzuschuss zu Bildungsveranstaltungen nach dem Merkblatt der
@@ -20,7 +16,6 @@ Fahrrad oder zu Fuß, jeweils für Inland und Ausland.
 die Auslandspauschale werden nicht berechnet.
 
 Die Regeln stehen in `assets/js/rules/`, die Länderdaten in `assets/js/data/`.
-Die Rechenbeispiele aus dem Merkblatt sind als Tests in `tests/` hinterlegt.
 
 ## Entfernung
 
@@ -37,24 +32,23 @@ Kartendaten © OpenStreetMap-Mitwirkende.
 Die Karte ist im eigenen dunklen Farbschema eingefärbt (`assets/js/ui/kartenstil.js`).
 Schrift: [Bricolage Grotesque](https://github.com/ateliertriay/bricolage) unter der SIL Open Font License, lokal eingebunden.
 
-## Offene Annahmen
+## Hochschulverzeichnis
 
-Diese Punkte lassen sich aus den Quellen nicht eindeutig ablesen:
+Beim Studienort schlägt der Rechner zuerst passende Hochschulen vor, etwa für „Hamburg“,
+„Uni Bonn“ oder „TUM“. Eine genaue Adresse kann zusätzlich eingegeben werden, ist aber optional.
 
-- Türkei: im Reise-Flowchart außerhalb Europas eingefärbt (Mindestdauer 15 Tage), obwohl im Interrail-Raum
-- Zypern: im Flowchart nicht erkennbar, als EU-Mitglied Europa zugeordnet
-- Vorhaben länger als ein Jahr mit innereuropäischem Flug: 100/80 Euro je zur Hälfte für Hin- und Rückreise
-- Zeiträume: An- und Abreisetag zählen mit
+Das Verzeichnis in `assets/js/data/hochschulen.js` wird mit `npm run hochschulen` erzeugt:
 
-Unsichere Länderzuordnungen sind in `assets/js/data/laender.js` mit `PRUEFEN` markiert.
+- [Wikidata](https://www.wikidata.org/) (CC0): Namen, Kurznamen, Koordinaten, Studierendenzahlen, HRK-Mitgliedschaft
+- OpenStreetMap über Photon: Anschriften, © OpenStreetMap-Mitwirkende, [ODbL](https://www.openstreetmap.org/copyright)
 
 ## Entwicklung
-
-Es gibt keinen Build-Schritt und keine Abhängigkeiten.
 
 ```sh
 npm test     # Tests mit dem Test-Runner von Node.js (ab Version 22)
 npm start    # lokaler Server auf http://localhost:8000
+npm run hochschulen   # Hochschulverzeichnis neu erzeugen (dauert einige Minuten)
+NUR="Universität Hamburg" npm run hochschulen   # Probelauf für einzelne Hochschulen, ohne zu schreiben
 ```
 
 Bei jedem Push auf `main` laufen die Tests, danach wird die Seite über GitHub Actions auf

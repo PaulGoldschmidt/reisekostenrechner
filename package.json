@@ -5,6 +5,8 @@
   "description": "Inoffizieller Rechner für Fahrt- und Reisekostenzuschüsse der Studienstiftung des deutschen Volkes",
   "scripts": {
     "test": "node --test \"tests/*.test.js\"",
-    "start": "python3 -m http.server 8000"
-  }
+    "start": "python3 -m http.server 8000",
+    "hochschulen": "node scripts/hochschulen.mjs"
+  },
+  "license": "MIT"
 }

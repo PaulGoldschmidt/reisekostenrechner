@@ -2,9 +2,12 @@ import { Ortsfeld } from './ui/ortsfeld.js';
 import { erstelleKarte } from './ui/karte.js';
 import { zeigeVeranstaltung, zeigeAuslandsvorhaben, hinweis } from './ui/ergebnis.js';
 import { h } from './ui/dom.js';
+import { konfetti } from './ui/konfetti.js';
+import { zeigeAdressTipp, versteckeClippy } from './ui/clippy.js';
 import { km } from './ui/format.js';
 import { berechneRoute } from './geo/route.js';
 import { bestimmeGebiet } from './geo/gebiet.js';
+import { bereiteVor, sucheHochschulen, alsVorschlag } from './geo/hochschulsuche.js';
 import { berechneVeranstaltung } from './rules/veranstaltung.js';
 import { berechneAuslandsvorhaben } from './rules/auslandsvorhaben.js';
 import { werteZeitraumAus, zeitraumUngueltig, zeitraumNoetig } from './rules/zeitraum.js';
@@ -35,14 +38,14 @@ const TEXTE = {
     anlassHilfe: 'Seminare, Akademien und andere Bildungsveranstaltungen der Studienstiftung.',
     zielLabel: 'Veranstaltungsort',
     zielPlatzhalter: 'z. B. Hattingen',
-    zielHilfe: 'Bei einem Bustransfer der Studienstiftung den Abfahrtsort des Busses eingeben.',
+    zielHilfe: 'Ort oder, falls bekannt, die genaue Adresse. Bei einem Bustransfer der Studienstiftung den Abfahrtsort des Busses eingeben.',
     zeitraumHilfe: 'Für den Flugzuschuss gilt eine Mindestdauer vor Ort. Auslandsaufenthalte direkt davor oder danach zählen mit.',
   },
   ausland: {
     anlassHilfe: 'Studium, Forschung, Praktikum, Sprachkurs und andere geförderte Vorhaben im Ausland.',
     zielLabel: 'Zielort im Ausland',
     zielPlatzhalter: 'z. B. Lyon',
-    zielHilfe: 'Maßgeblich für den Zuschuss ist das Zielland.',
+    zielHilfe: 'Ort oder, falls bekannt, die genaue Adresse. Maßgeblich für den Zuschuss ist das Zielland.',
     zeitraumHilfe: 'Entscheidet über die Mindestdauer bei Flugreisen und darüber, ob Hin- und Rückreise getrennt gezahlt werden.',
   },
 };
@@ -61,6 +64,7 @@ const zustand = {
 };
 
 let routeAbbruch = null;
+const gefeiert = new Set();
 const karte = erstelleKarte(el.karte);
 
 // URL
@@ -69,13 +73,17 @@ function ortZuText(ort) {
   return [ort.lat.toFixed(5), ort.lon.toFixed(5), ort.land, ort.label].join(',');
 }
 
-function textZuOrt(text) {
+// Der Kurzname (z. B. "TUM" oder "Jägerstraße 22, Berlin") steht in einem eigenen Parameter,
+// wenn er nicht einfach der Anfang der Beschriftung ist. Ältere Links ohne ihn bleiben gültig.
+const ersterTeil = (label) => label.split(',')[0].trim();
+
+function textZuOrt(text, name) {
   if (!text) return null;
   const teile = text.split(',');
   if (teile.length < 4) return null;
   const [lat, lon, land] = teile;
   const label = teile.slice(3).join(',').trim();
-  const ort = { lat: Number(lat), lon: Number(lon), land: String(land).toUpperCase(), label, name: label.split(',')[0] };
+  const ort = { lat: Number(lat), lon: Number(lon), land: String(land).toUpperCase(), label, name: name || ersterTeil(label) };
   if (!Number.isFinite(ort.lat) || !Number.isFinite(ort.lon) || !/^[A-Z]{2}$/.test(ort.land) || !label) return null;
   return ort;
 }
@@ -83,8 +91,12 @@ function textZuOrt(text) {
 function schreibeUrl() {
   const p = new URLSearchParams();
   if (zustand.anlass === 'ausland') p.set('anlass', 'ausland');
-  if (zustand.start) p.set('start', ortZuText(zustand.start));
-  if (zustand.ziel) p.set('ziel', ortZuText(zustand.ziel));
+  for (const art of ['start', 'ziel']) {
+    const ort = zustand[art];
+    if (!ort) continue;
+    p.set(art, ortZuText(ort));
+    if (ort.name !== ersterTeil(ort.label)) p.set(`${art}name`, ort.name);
+  }
   if (zustand.von) p.set('von', zustand.von);
   if (zustand.bis) p.set('bis', zustand.bis);
   if (zustand.mitfahrende) p.set('mitfahrende', String(zustand.mitfahrende));
@@ -96,8 +108,8 @@ function schreibeUrl() {
 function leseUrl() {
   const p = new URLSearchParams(location.search);
   zustand.anlass = p.get('anlass') === 'ausland' ? 'ausland' : 'veranstaltung';
-  zustand.start = textZuOrt(p.get('start'));
-  zustand.ziel = textZuOrt(p.get('ziel'));
+  zustand.start = textZuOrt(p.get('start'), p.get('startname'));
+  zustand.ziel = textZuOrt(p.get('ziel'), p.get('zielname'));
   const datum = (w) => (/^\d{4}-\d{2}-\d{2}$/.test(w || '') ? w : '');
   zustand.von = datum(p.get('von'));
   zustand.bis = datum(p.get('bis'));
@@ -142,7 +154,7 @@ async function ladeRoute() {
 function zeichneStrecke(startG, zielG) {
   const { start, ziel, route, routeLaedt } = zustand;
   if (!start || !ziel) {
-    el.strecke.textContent = 'Studienort und Ziel eingeben, dann erscheinen Strecke und Zuschuss.';
+    el.strecke.textContent = '';
     return;
   }
   if (routeLaedt) {
@@ -185,10 +197,10 @@ function zeichneErgebnis(startG, zielG, mitZeitraum) {
     meldungen.push(hinweis('Zeitraum prüfen.', 'Das Ende liegt vor dem Beginn.', 'warnung'));
   }
 
-  if (!start || !ziel) return [];
+  if (!start || !ziel) return { elemente: [], hoechster: 0 };
 
   if (anlass === 'veranstaltung') {
-    if (!route || route.art === 'fehler') return [];
+    if (!route || route.art === 'fehler') return { elemente: [], hoechster: 0 };
     const r = berechneVeranstaltung({
       kmEinfach: route.km,
       ausland: !(startG.inland && zielG.inland),
@@ -198,15 +210,18 @@ function zeichneErgebnis(startG, zielG, mitZeitraum) {
       bahnUeber12h: zustand.bahnUeber12h,
       aufenthaltTage: zeitraum ? zeitraum.tage : null,
     });
-    return [kopf, ...meldungen, ...zeigeVeranstaltung(r, zustand, aktionen)];
+    return {
+      elemente: [kopf, ...meldungen, ...zeigeVeranstaltung(r, zustand, aktionen)],
+      hoechster: r.hoechsterZuschuss,
+    };
   }
 
   // Auslandsvorhaben
   if (zielG.inland) {
-    return [kopf, hinweis('Ziel im Inland.', 'Ein Auslandsvorhaben braucht einen Zielort außerhalb Deutschlands. Für Veranstaltungen oben auf „Veranstaltung“ umschalten.', 'warnung')];
+    return { hoechster: 0, elemente: [kopf, hinweis('Ziel im Inland.', 'Ein Auslandsvorhaben braucht einen Zielort außerhalb Deutschlands. Für Veranstaltungen oben auf „Veranstaltung“ umschalten.', 'warnung')] };
   }
   if (!zielG.satz) {
-    return [kopf, hinweis('Kein Satz hinterlegt.', `Für ${zielG.name} enthält die DAAD-Liste keinen Reisekostenzuschuss. Bitte bei der Studienstiftung nachfragen.`, 'warnung')];
+    return { hoechster: 0, elemente: [kopf, hinweis('Kein Satz hinterlegt.', `Für ${zielG.name} enthält die DAAD-Liste keinen Reisekostenzuschuss. Bitte bei der Studienstiftung nachfragen.`, 'warnung')] };
   }
   const r = berechneAuslandsvorhaben({
     satz: zielG.satz,
@@ -220,7 +235,26 @@ function zeichneErgebnis(startG, zielG, mitZeitraum) {
     zeitraum,
     bahnUeber12h: zustand.bahnUeber12h,
   });
-  return [kopf, ...meldungen, ...zeigeAuslandsvorhaben(r, zielG, zustand, aktionen)];
+  return {
+    elemente: [kopf, ...meldungen, ...zeigeAuslandsvorhaben(r, zielG, zustand, aktionen)],
+    hoechster: r.hoechsterZuschuss,
+  };
+}
+
+// Konfetti, sobald für eine neue Strecke ein Zuschuss berechnet ist.
+// Nicht bei Änderungen an Mitfahrenden oder Haken, nur einmal je Strecke und Anlass.
+function feiere(hoechster) {
+  const { route, routeLaedt, routeSchluessel, anlass } = zustand;
+  if (routeLaedt || !route || route.art === 'fehler' || !(hoechster > 0)) return;
+  const schluessel = `${anlass}|${routeSchluessel}`;
+  if (gefeiert.has(schluessel)) return;
+  gefeiert.add(schluessel);
+  const titel = el.ergebnis.querySelector('.ergebnis-titel');
+  const box = titel ? titel.getBoundingClientRect() : null;
+  const imBild = box && box.top > 40 && box.top < window.innerHeight * 0.85;
+  konfetti(imBild
+    ? { x: box.left + Math.min(box.width, 560) / 2, y: box.top }
+    : { x: window.innerWidth / 2, y: window.innerHeight * 0.45 });
 }
 
 function zeichneAnlass() {
@@ -256,7 +290,8 @@ function zeichne() {
 
   // Fokus über das Neuzeichnen hinweg erhalten
   const fokus = document.activeElement && el.ergebnis.contains(document.activeElement) ? document.activeElement.dataset : null;
-  el.ergebnis.replaceChildren(...zeichneErgebnis(startG, zielG, mitZeitraum));
+  const { elemente, hoechster } = zeichneErgebnis(startG, zielG, mitZeitraum);
+  el.ergebnis.replaceChildren(...elemente);
   if (fokus && fokus.fokus) {
     let ziel2 = el.ergebnis.querySelector(`[data-fokus="${fokus.fokus}"]`);
     if (ziel2 && ziel2.disabled && fokus.fokusAlt) ziel2 = el.ergebnis.querySelector(`[data-fokus="${fokus.fokusAlt}"]`);
@@ -265,11 +300,25 @@ function zeichne() {
 
   karte.zeige(start, ziel, zustand.routeLaedt ? null : zustand.route);
   schreibeUrl();
+  feiere(hoechster);
 }
+
+// Hochschulverzeichnis erst laden, wenn es gebraucht wird
+
+let verzeichnis = null;
+function ladeVerzeichnis() {
+  verzeichnis ??= import('./data/hochschulen.js')
+    .then((modul) => bereiteVor(modul.HOCHSCHULEN))
+    .catch(() => []);
+  return verzeichnis;
+}
+el.start.addEventListener('focus', ladeVerzeichnis, { once: true });
 
 // Ereignisse
 
 const startFeld = new Ortsfeld(el.start, el.startListe, {
+  lokal: async (text) => sucheHochschulen(await ladeVerzeichnis(), text, 4).map(alsVorschlag),
+  lokalTitel: 'Hochschulen',
   onWahl: (ort) => {
     zustand.start = ort;
     ladeRoute();
@@ -285,10 +334,14 @@ const startFeld = new Ortsfeld(el.start, el.startListe, {
 const zielFeld = new Ortsfeld(el.ziel, el.zielListe, {
   onWahl: (ort) => {
     zustand.ziel = ort;
-    ladeRoute();
+    const routeFertig = ladeRoute();
     zeichne();
+    // Nur ein Ort gewählt: Clippy weist auf die genaue Adresse hin, sobald die Route steht
+    if (ort.art !== 'ort') versteckeClippy();
+    else routeFertig.then(() => zustand.ziel === ort && zeigeAdressTipp(el.ziel));
   },
   onLeeren: () => {
+    versteckeClippy();
     zustand.ziel = null;
     ladeRoute();
     zeichne();

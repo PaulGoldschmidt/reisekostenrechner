@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { BASIS as CLIPPY_BASIS } from '../assets/js/ui/clippy.js';
 
 const wurzel = fileURLToPath(new URL('..', import.meta.url));
 
@@ -20,15 +21,17 @@ const eigeneDateien = [
   join(wurzel, 'index.html'),
   join(wurzel, 'README.md'),
   ...dateien(join(wurzel, 'assets')).filter((p) => /\.(js|css|svg|html)$/.test(p)),
+  ...dateien(join(wurzel, 'scripts')),
+  ...dateien(join(wurzel, 'tests')).filter((p) => p.endsWith('.js')),
 ];
 
 // Gedankenstriche und Mittelpunkte sollen nirgends vorkommen.
 const VERBOTEN = {
-  '—': 'Geviertstrich',
-  '–': 'Halbgeviertstrich',
-  '·': 'Mittelpunkt',
-  '•': 'Aufzählungspunkt',
-  '⋅': 'Multiplikationspunkt',
+  '\u2014': 'Geviertstrich',
+  '\u2013': 'Halbgeviertstrich',
+  '\u00B7': 'Mittelpunkt',
+  '\u2022': 'Aufzählungspunkt',
+  '\u22C5': 'Multiplikationspunkt',
 };
 
 test('Keine Gedankenstriche oder Mittelpunkte in eigenen Dateien', () => {
@@ -45,10 +48,9 @@ test('Pflichtangaben auf der Seite', () => {
   const html = readFileSync(join(wurzel, 'index.html'), 'utf8');
   for (const teil of [
     'Kein offizielles Angebot',
-    'keiner Verbindung zur Studienstiftung',
+    'Keine Verbindung zur Studienstiftung',
     'ohne Gewähr',
     'Stand: Mitte November 2026',
-    'Paul Goldschmidt',
     'https://github.com/PaulGoldschmidt/reisekostenrechner',
     'https://paul-goldschmidt.de/imprint/',
     'https://paul-goldschmidt.de/privacy',
@@ -56,4 +58,12 @@ test('Pflichtangaben auf der Seite', () => {
   ]) {
     assert.ok(html.includes(teil), `fehlt: ${teil}`);
   }
+});
+
+test('Import-Map enthält Prüfsummen für genau die Clippy-Dateien, die clippy.js lädt', () => {
+  const html = readFileSync(join(wurzel, 'index.html'), 'utf8');
+  const karte = JSON.parse(/<script type="importmap">([\s\S]*?)<\/script>/.exec(html)[1]);
+  const erwartet = ['index.mjs', 'agents/clippy/agent.mjs', 'agents/clippy/map.mjs'].map((d) => CLIPPY_BASIS + d);
+  assert.deepEqual(Object.keys(karte.integrity).sort(), erwartet.sort());
+  for (const pruefsumme of Object.values(karte.integrity)) assert.match(pruefsumme, /^sha384-[A-Za-z0-9+/]{64}$/);
 });

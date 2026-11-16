@@ -135,5 +135,7 @@ export function berechneVeranstaltung({
     auto,
     rad,
     flug,
+    // Höchster Fahrtkostenzuschuss (Übernachtungskosten beim Fahrrad zählen nicht dazu)
+    hoechsterZuschuss: Math.max(bahn.betrag, auto.betrag, flug.mitKompensation),
   };
 }

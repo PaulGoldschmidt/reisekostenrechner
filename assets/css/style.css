@@ -111,27 +111,6 @@ a:hover {
   margin-bottom: 32px;
 }
 
-.marke {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 0 14px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--akzent);
-}
-
-.marke::before {
-  content: "";
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--akzent);
-  box-shadow: 0 0 0 4px var(--akzent-hell);
-}
-
 h1 {
   margin: 0 0 12px;
   font-size: clamp(1.9rem, 4.2vw, 2.6rem);
@@ -141,24 +120,9 @@ h1 {
 }
 
 .einleitung {
-  margin: 0 0 18px;
+  margin: 0;
   color: var(--gedaempft);
   font-size: 1.08rem;
-}
-
-.inoffiziell {
-  margin: 0;
-  padding: 10px 14px;
-  border: 1px solid var(--linie);
-  border-left: 3px solid var(--warnung);
-  border-radius: 10px;
-  background: var(--flaeche);
-  color: var(--text-2);
-  font-size: 0.92rem;
-}
-
-.inoffiziell strong {
-  color: var(--text);
 }
 
 /* Eingabe */
@@ -308,6 +272,13 @@ input::placeholder {
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
 }
 
+/* Hochschulnamen sind lang: Liste darf breiter als das Feld sein (gesetzt von Ortsfeld) */
+.vorschlaege-breit {
+  right: auto;
+  width: max(100%, 440px);
+  max-width: calc(100vw - 40px);
+}
+
 .vorschlag {
   display: flex;
   flex-direction: column;
@@ -328,6 +299,21 @@ input::placeholder {
 .vorschlag-zusatz {
   font-size: 0.85rem;
   color: var(--gedaempft);
+}
+
+.vorschlag-gruppe {
+  padding: 8px 10px 4px;
+  color: var(--gedaempft-2);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.vorschlag-gruppe:not(:first-child) {
+  margin-top: 4px;
+  border-top: 1px solid var(--linie);
+  padding-top: 10px;
 }
 
 .vorschlag-meldung {
@@ -377,6 +363,10 @@ input::placeholder {
   min-height: 1.55em;
   color: var(--gedaempft);
   font-size: 0.95rem;
+}
+
+.strecke:empty {
+  display: none;
 }
 
 .strecke strong {
@@ -430,6 +420,17 @@ input::placeholder {
 .maplibregl-cooperative-gesture-screen {
   background: rgba(14, 16, 19, 0.75);
   font-family: var(--schrift);
+}
+
+/* Konfetti nach der Berechnung */
+
+.konfetti {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 50;
 }
 
 /* Ergebnis */
@@ -504,6 +505,47 @@ input::placeholder {
   margin: 0;
   font-size: 0.875rem;
   color: var(--gedaempft);
+}
+
+/* Büchergeld-Hinweis beim Überfahren eines Betrags mit der Maus */
+
+@media (hover: hover) {
+  .tipp {
+    position: relative;
+    cursor: help;
+  }
+
+  .tipp::after {
+    content: attr(data-tipp);
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 8px);
+    z-index: 20;
+    padding: 6px 10px;
+    border: 1px solid var(--linie-stark);
+    border-radius: 8px;
+    background: var(--flaeche-2);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+    color: var(--text);
+    font-size: 0.8rem;
+    font-weight: 500;
+    letter-spacing: 0;
+    line-height: 1.3;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, 4px);
+    transition: opacity 0.15s, transform 0.15s;
+  }
+
+  .tipp:hover::after {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+
+  .tipp:hover {
+    color: var(--akzent);
+  }
 }
 
 .posten-gedimmt .posten-betrag {
@@ -700,7 +742,8 @@ input::placeholder {
   }
 }
 
-/* Desktop: Eingaben und Ergebnisse links, Karte rechts über die volle Höhe */
+/* Desktop: Eingaben und Ergebnisse links, Karte rechts über die volle Höhe.
+   Gleicher Wert wie DESKTOP in assets/js/ui/medien.js. */
 
 @media (min-width: 1024px) {
   :root {
@@ -746,7 +789,4 @@ input::placeholder {
     pointer-events: auto;
   }
 
-  .strecke:empty {
-    display: none;
-  }
 }

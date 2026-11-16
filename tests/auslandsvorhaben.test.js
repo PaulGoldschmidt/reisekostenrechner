@@ -151,6 +151,12 @@ test('Ohne Zeitraum: Flug unter Vorbehalt der Mindestdauer', () => {
   assert.equal(r.unterAchtWochen, false);
 });
 
+test('Höchster Zuschuss: Landweg oder Flug, je nachdem was gezahlt wird', () => {
+  assert.equal(rechne('bonn', 'leysin', { von: '2026-08-01', bis: '2026-08-21' }).hoechsterZuschuss, 309);
+  assert.equal(rechne('bonn', 'tokio', { von: '2026-03-01', bis: '2026-03-30', landweg: false }).hoechsterZuschuss, 1735);
+  assert.equal(rechne('bonn', 'tokio', { von: '2026-03-01', bis: '2026-03-20', landweg: false }).hoechsterZuschuss, 0);
+});
+
 test('Studienort außerhalb Europas, Ziel in Europa: Flug gilt als interkontinental', () => {
   const r = rechne('boston', 'paris', { von: '2026-06-01', bis: '2026-06-20', landweg: false });
   assert.equal(r.europa, false);

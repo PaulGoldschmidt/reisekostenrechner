@@ -122,6 +122,16 @@ test('Ausland: keine 100-km-Grenze und kein Deckel', () => {
   assert.equal(lang.bahn.deckel, null);
 });
 
+test('Höchster Zuschuss über alle Verkehrsmittel', () => {
+  assert.equal(inland(68).hoechsterZuschuss, 0);
+  assert.equal(inland(792, { mitfahrende: 2 }).hoechsterZuschuss, 198);
+  assert.equal(ausland(1280, { bahnUeber12h: true }).hoechsterZuschuss, 256);
+  assert.equal(
+    berechneVeranstaltung({ kmEinfach: 9114, ausland: true, innereuropaeisch: false, landweg: false }).hoechsterZuschuss,
+    400,
+  );
+});
+
 test('Fahrrad: Übernachtungskosten im Inland und im Ausland', () => {
   const i = inland(300);
   assert.equal(i.rad.max, 80);
