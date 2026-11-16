@@ -24,6 +24,13 @@ export const km = (wert) => `${ZAHL.format(Math.round(wert))} km`;
 
 export const zahl = (wert) => ZAHL.format(wert);
 
+// Studienkostenpauschale der Studienstiftung pro Monat, umgangssprachlich "Büchergeld"
+export const BUECHERGELD = 300;
+const FAKTOR = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 2 });
+
+/** 56.2 wird zu "Das sind 0,19-mal Büchergeld", 900 zu "Das sind 3-mal Büchergeld". */
+export const buechergeld = (betrag) => `Das sind ${FAKTOR.format(betrag / BUECHERGELD)}-mal Büchergeld`;
+
 /** Nominativ und Akkusativ: "1 Tag" oder "8 Tage". */
 export const tage = (n) => `${zahl(n)} ${n === 1 ? 'Tag' : 'Tage'}`;
 

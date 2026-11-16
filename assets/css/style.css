@@ -481,6 +481,47 @@ input::placeholder {
   color: var(--gedaempft);
 }
 
+/* Büchergeld-Hinweis beim Überfahren eines Betrags mit der Maus */
+
+@media (hover: hover) {
+  .tipp {
+    position: relative;
+    cursor: help;
+  }
+
+  .tipp::after {
+    content: attr(data-tipp);
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 8px);
+    z-index: 20;
+    padding: 6px 10px;
+    border: 1px solid var(--linie-stark);
+    border-radius: 8px;
+    background: var(--flaeche-2);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+    color: var(--text);
+    font-size: 0.8rem;
+    font-weight: 500;
+    letter-spacing: 0;
+    line-height: 1.3;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, 4px);
+    transition: opacity 0.15s, transform 0.15s;
+  }
+
+  .tipp:hover::after {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+
+  .tipp:hover {
+    color: var(--akzent);
+  }
+}
+
 .posten-gedimmt .posten-betrag {
   color: var(--gedaempft-2);
 }
