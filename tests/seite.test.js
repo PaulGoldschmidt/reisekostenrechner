@@ -51,7 +51,7 @@ test('Pflichtangaben auf der Seite', () => {
     'Stand: Mitte November 2026',
     'https://github.com/PaulGoldschmidt/reisekostenrechner',
     'https://paul-goldschmidt.de/imprint/',
-    'https://paul-goldschmidt.de/privacy',
+    '>Datenschutz</a>',
     // Required by the Transitous terms of use
     'https://transitous.org/sources/',
     'OpenStreetMap',
