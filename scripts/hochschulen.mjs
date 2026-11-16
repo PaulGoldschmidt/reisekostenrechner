@@ -1,14 +1,10 @@
-// Erzeugt assets/js/data/hochschulen.js, das Verzeichnis der Hochschulen in Deutschland.
+// Generates assets/js/data/hochschulen.js, the directory of universities in Germany, from:
+// 1. Wikidata (CC0): name, short names, coordinates, city, student count, HRK membership
+// 2. OpenStreetMap via Photon (ODbL): postal address, searched by name near the Wikidata coordinate
+// The HRK list (Hochschulkompass) is not used because it is only free for personal use.
 //
-// 1. Wikidata (CC0): Name, Kurznamen, Koordinaten, Ort, Studierendenzahl, HRK-Mitgliedschaft
-// 2. OpenStreetMap über Photon (ODbL): Postanschrift, gesucht über den Namen in der Nähe
-//    der Wikidata-Koordinate
-//
-// Aufruf: npm run hochschulen   (dauert wegen der Pause zwischen Photon-Anfragen einige Minuten)
-// Probelauf: NUR="Universität Hamburg,KIT" npm run hochschulen gibt nur passende Einträge aus
-//
-// Die Hochschulliste der HRK (Hochschulkompass) ist nur für den persönlichen Gebrauch frei
-// und wird deshalb nicht verwendet.
+// Run: npm run hochschulen (takes a few minutes because of the pause between Photon requests)
+// Trial run: NUR="Universität Hamburg,KIT" npm run hochschulen only prints the matching entries
 
 import { writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -20,33 +16,33 @@ const ZIEL = fileURLToPath(new URL('../assets/js/data/hochschulen.js', import.me
 const KENNUNG = 'reisekostenrechner (https://github.com/PaulGoldschmidt/reisekostenrechner)';
 const PAUSE_MS = 1100;
 const MAX_ABSTAND_KM = 3;
-export const DEUTSCHLAND = [5.8, 47.2, 15.1, 55.1]; // West, Süd, Ost, Nord
+export const DEUTSCHLAND = [5.8, 47.2, 15.1, 55.1]; // west, south, east, north
 
-// Arten von Hochschulen in Wikidata (Fakultäten, Akademien der Wissenschaften usw. bewusst nicht)
+// Wikidata types of universities (faculties, academies of sciences etc. are left out on purpose)
 const ARTEN = [
-  'Q1365560', // Fachhochschule (Deutschland)
-  'Q875538', // staatliche Universität
-  'Q902104', // Privatuniversität
-  'Q38723', // Hochschule
-  'Q21028957', // Hochschule
-  'Q1743327', // kirchliche Hochschule
-  'Q963908', // private Hochschule
-  'Q383092', // Kunstakademie
-  'Q1767829', // Volluniversität
-  'Q3918', // Universität
-  'Q184644', // Konservatorium
-  'Q3889692', // Musikhochschule
-  'Q1384955', // Veterinärmedizinische Hochschule
-  'Q115427560', // Exzellenzuniversität
-  'Q62078547', // staatliche Forschungsuniversität
-  'Q380093', // Filmhochschule
-  'Q1371037', // technische Universität
-  'Q2120173', // pädagogische Hochschule
-  'Q5028741', // Campusuniversität
-  'Q1262595', // Duale Hochschule
-  'Q2349320', // Stiftungshochschule
-  'Q1669605', // Philosophisch-theologische Hochschule
-  'Q17028020', // Fachhochschule
+  'Q1365560', // university of applied sciences (Germany)
+  'Q875538', // public university
+  'Q902104', // private university
+  'Q38723', // higher education institution
+  'Q21028957', // Hochschule (German term)
+  'Q1743327', // church college
+  'Q963908', // private higher education institution
+  'Q383092', // art academy
+  'Q1767829', // comprehensive university
+  'Q3918', // university
+  'Q184644', // conservatory
+  'Q3889692', // college of music
+  'Q1384955', // veterinary school
+  'Q115427560', // University of Excellence
+  'Q62078547', // public research university
+  'Q380093', // film school
+  'Q1371037', // university of technology
+  'Q2120173', // school of education
+  'Q5028741', // campus university
+  'Q1262595', // dual university
+  'Q2349320', // foundation university
+  'Q1669605', // philosophical-theological university
+  'Q17028020', // vocational university
 ];
 const HRK = 'Q880981';
 
@@ -69,7 +65,7 @@ SELECT ?h ?name ?alias ?kurz ?coord ?strasse ?plz ?ortName ?studis ?hrk WHERE {
 
 const pause = (ms) => new Promise((r) => setTimeout(r, ms));
 
-/** Gedankenstriche und Mittelpunkte aus Namen entfernen, Leerzeichen bereinigen. */
+// Dashes and middle dots must not end up in the generated file (tests/seite.test.js checks this)
 export function bereinige(text) {
   return String(text || '')
     .replace(/\s*[\u2013\u2014]\s*/g, ', ')
@@ -79,13 +75,11 @@ export function bereinige(text) {
     .trim();
 }
 
-// Wörter ab drei Buchstaben, damit "der", "für" und Ähnliches den Namensvergleich nicht verfälschen
+// Only words of three or more letters, so that "der", "für" and the like do not skew the name comparison
 const langeWoerter = (t) => woerter(bereinige(t)).filter((w) => w.length > 2);
 
-/**
- * Entfernt doppelte Teile einer Anschrift, etwa wenn die Straßenangabe aus Wikidata den Ort
- * schon enthält: "Grabengasse 1, 69117 Heidelberg, Heidelberg" wird zu "Grabengasse 1, 69117 Heidelberg".
- */
+// The Wikidata street value sometimes already contains the city:
+// "Grabengasse 1, 69117 Heidelberg, Heidelberg" becomes "Grabengasse 1, 69117 Heidelberg".
 export function ohneDoppelteTeile(anschrift) {
   const doppelt = (teil, vorher) =>
     vorher.some((v) => normal(v) === normal(teil) || normal(v).replace(/^\d{4,5}\s+/, '') === normal(teil));
@@ -148,7 +142,6 @@ async function photon(name, nahe) {
   return (await antwort.json()).features || [];
 }
 
-/** Bewertet einen Photon-Treffer als Anschrift für eine Hochschule. Höher ist besser. */
 function bewerte(hochschule, treffer, nahe) {
   const p = treffer.properties || {};
   const [lon, lat] = treffer.geometry.coordinates;
@@ -169,10 +162,10 @@ function bewerte(hochschule, treffer, nahe) {
   return punkte;
 }
 
-// Nur offizielle Kurznamen (Wikidata P1813). Aliase enthalten auch historische Namen
-// wie "KMU Leipzig" und dienen deshalb nur der Suche.
+// Only official short names (Wikidata P1813). Aliases also contain historic names
+// such as "KMU Leipzig", so they are only used for searching.
 function waehleKurzname(e) {
-  // Mindestens drei Zeichen: "TU" oder "HM" allein sind nicht eindeutig
+  // At least three characters: "TU" or "HM" alone are ambiguous
   const kandidaten = [...e.kurz].filter((k) => k.length >= 3 && k.length <= 28 && k !== e.name);
   kandidaten.sort((a, b) => a.length - b.length);
   return kandidaten[0] || null;
@@ -180,11 +173,9 @@ function waehleKurzname(e) {
 
 const UNTEREINHEIT = /\b(Klinik|Lehrstuhl|Fachbereich|Abteilung|Didaktik|Fakultät|Institut für|Seminar für)\b/i;
 
-/**
- * Entfernt Untereinheiten wie "Universität Leipzig, Klinik für Vögel und Reptilien":
- * Einträge, deren Name mit dem Namen einer anderen Hochschule beginnt oder die nach
- * Instituten und Kliniken klingen. HRK-Mitglieder bleiben immer erhalten.
- */
+// Wikidata also lists sub-units such as "Universität Leipzig, Klinik für Vögel und Reptilien"
+// as institutions. HRK members are real universities and always stay, even if the name matches
+// (Karlsruher Institut für Technologie).
 export function ohneUntereinheiten(liste) {
   const namen = liste.map((h) => h.name);
   return liste.filter((h) => {
@@ -194,7 +185,7 @@ export function ohneUntereinheiten(liste) {
   });
 }
 
-/** Ein Eintrag pro Zeile: kompakt und mit gut lesbaren Unterschieden in Git. */
+// One entry per line: compact, and the diffs in Git stay readable
 function alsModul(liste) {
   return `export const HOCHSCHULEN = [\n${liste.map((h) => JSON.stringify(h)).join(',\n')}\n];\n`;
 }
@@ -210,7 +201,7 @@ async function main() {
   let i = 0;
   for (const e of liste) {
     i++;
-    // Die Pause läuft parallel zur Anfrage: höchstens eine Anfrage pro Sekunde, ohne Leerlauf
+    // At most one Photon request per second (fair use); the pause runs in parallel with the request
     const [treffer] = await Promise.all([
       photon(e.name, e.coord).catch((fehler) => {
         console.warn(`  ${e.name}: ${fehler.message}`);
@@ -219,8 +210,8 @@ async function main() {
       pause(PAUSE_MS),
     ]);
 
-    // Ohne Straße muss der Ort des Treffers zu Wikidata passen. So fallen OSM-Fehler
-    // wie eine falsche Postleitzahl an einem Campusgelände (KIT) heraus.
+    // Without a street, the hit's city must match Wikidata. This filters out OSM errors
+    // such as a wrong postcode on a campus area (KIT).
     const ortPasst = (t) => {
       const p = t.properties || {};
       if (p.street) return true;
@@ -242,12 +233,11 @@ async function main() {
       continue;
     }
 
-    // Anschrift: OSM bevorzugt, sonst Wikidata, sonst nur der Ort
     const strasse = p.street ? bereinige(`${p.street}${p.housenumber ? ` ${p.housenumber}` : ''}`) : e.strasse;
     const plz = p.postcode || e.plz || '';
     const ort = bereinige(p.city || [...e.orte][0] || '');
     const anschrift = ohneDoppelteTeile([strasse, [plz, ort].filter(Boolean).join(' ')].filter(Boolean).join(', '));
-    // Mit vollständiger OSM-Anschrift deren Lage nutzen, damit Route und Anzeige zusammenpassen
+    // With a complete OSM address, use its location so the route matches the displayed address
     const lage = p.street && p.housenumber ? osm : koord;
 
     ergebnis.push({
@@ -265,7 +255,7 @@ async function main() {
     if (i % 25 === 0) console.log(`  [${i}/${liste.length}] ${e.name}: ${anschrift}`);
   }
 
-  // Einträge ohne Anschrift oder außerhalb Deutschlands (falsches Land in Wikidata) entfernen
+  // Coordinates outside Germany mean the country in Wikidata is wrong
   const [west, sued, ost, nord] = DEUTSCHLAND;
   const inDeutschland = ergebnis.filter(
     (h) => h.anschrift && h.lon >= west && h.lon <= ost && h.lat >= sued && h.lat <= nord,
@@ -279,11 +269,11 @@ async function main() {
   }
   const heute = new Date().toISOString().slice(0, 10);
   const kopf = [
-    `// Automatisch erzeugt mit scripts/hochschulen.mjs am ${heute}. Nicht von Hand bearbeiten.`,
+    `// Generated by scripts/hochschulen.mjs on ${heute}. Do not edit by hand.`,
     '//',
-    '// Quellen:',
-    '// - Wikidata (CC0): Namen, Kurznamen, Koordinaten, Studierendenzahlen, HRK-Mitgliedschaft',
-    '// - OpenStreetMap über Photon: die meisten Anschriften, © OpenStreetMap-Mitwirkende,',
+    '// Sources:',
+    '// - Wikidata (CC0): names, short names, coordinates, student numbers, HRK membership',
+    '// - OpenStreetMap via Photon: most addresses, © OpenStreetMap contributors,',
     '//   Open Database License (ODbL) 1.0, https://www.openstreetmap.org/copyright',
     '',
   ].join('\n');

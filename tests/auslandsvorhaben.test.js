@@ -1,5 +1,5 @@
-// Für die Auslandsförderung gibt es keine offiziellen Rechenbeispiele.
-// Die Fälle sind aus den Regelungstexten abgeleitet.
+// There are no official examples for Auslandsvorhaben, so these cases are derived
+// from the rule texts.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -46,17 +46,14 @@ test('Zeitraum: An- und Abreisetag zählen mit', () => {
 
 test('Zeitraum wird nur gebraucht, wenn er die Berechnung beeinflusst', () => {
   const v = (extra) => zeitraumNoetig({ anlass: 'veranstaltung', bahnUeber12h: false, ...extra });
-  // Auslandsvorhaben: immer
   assert.equal(zeitraumNoetig({ anlass: 'ausland', ausland: null, routenArt: null, bahnUeber12h: false }), true);
-  // Veranstaltung: Orte unbekannt oder Inland
   assert.equal(v({ ausland: null, routenArt: null }), false);
   assert.equal(v({ ausland: false, routenArt: 'strasse', bahnUeber12h: true }), false);
-  // Ausland mit Straßenverbindung: nur wenn die Bahn länger als 12 h braucht
   assert.equal(v({ ausland: true, routenArt: 'strasse' }), false);
   assert.equal(v({ ausland: true, routenArt: 'strasse', bahnUeber12h: true }), true);
-  // Ausland ohne Straßenverbindung: Flug ist die einzige Option
+  // No road connection: flying is the only option
   assert.equal(v({ ausland: true, routenArt: 'keine' }), true);
-  // Route noch nicht berechnet oder fehlgeschlagen
+  // Route not calculated yet (null) or routing failed
   assert.equal(v({ ausland: true, routenArt: null, bahnUeber12h: true }), false);
   assert.equal(v({ ausland: true, routenArt: 'fehler', bahnUeber12h: true }), false);
 });

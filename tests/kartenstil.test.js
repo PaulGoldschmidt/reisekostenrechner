@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { faerbeStil, FARBEN, stadtpunkt } from '../assets/js/ui/kartenstil.js';
 
-// Stand des Stils "dark" von OpenFreeMap im November 2026
+// Snapshot of the OpenFreeMap "dark" style from November 2026
 const stil = JSON.parse(readFileSync(new URL('./fixtures/openfreemap-dark.json', import.meta.url), 'utf8'));
 const ebene = (s, id) => s.layers.find((l) => l.id === id);
 

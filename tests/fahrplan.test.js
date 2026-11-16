@@ -5,9 +5,9 @@ import { ausserhalbBahnRaum } from '../assets/js/geo/bahnraum.js';
 import { bestimmeGebiet } from '../assets/js/geo/gebiet.js';
 
 test('Stichtag ist ein Mittwoch mindestens zwei Tage voraus, 6 Uhr UTC', () => {
-  // Montag 16.11.2026: Mittwoch 18.11. ist genau zwei Tage voraus
+  // Monday 16 Nov 2026: Wednesday 18 Nov is exactly two days ahead
   assert.equal(stichtag(new Date('2026-11-16T12:00:00Z')).toISOString(), '2026-11-18T06:00:00.000Z');
-  // Dienstag 17.11.: der 18.11. ist zu nah, also der 25.11.
+  // Tuesday 17 Nov: the 18th is too close, so the 25th
   assert.equal(stichtag(new Date('2026-11-17T12:00:00Z')).toISOString(), '2026-11-25T06:00:00.000Z');
 });
 
@@ -44,6 +44,6 @@ test('Interrail- und Fernbus-Raum', () => {
   assert.equal(ziel('ES', 28.12, -15.43), true); // Gran Canaria
   assert.equal(ziel('PT', 32.65, -16.91), true); // Madeira
   assert.equal(ziel('RU', 55.75, 37.62), true);
-  // Außerhalb Europas gilt die Regel nicht
+  // The rule only applies within Europe
   assert.equal(ziel('JP', 35.68, 139.69), false);
 });

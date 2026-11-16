@@ -23,13 +23,13 @@ test('Großkreis beginnt und endet an den Orten und springt nicht an der Datumsg
   assert.equal(p.length, 51);
   assert.ok(Math.abs(p[0][0] - a.lon) < 1e-6 && Math.abs(p[0][1] - a.lat) < 1e-6);
   assert.ok(Math.abs(p[50][1] - b.lat) < 1e-6);
-  // Endpunkt liegt fortlaufend jenseits von 180 Grad
+  // The end point continues past 180 degrees instead of jumping to -180
   assert.ok(Math.abs(p[50][0] - (b.lon + 360)) < 1e-6);
   for (let i = 1; i < p.length; i++) assert.ok(Math.abs(p[i][0] - p[i - 1][0]) < 180);
 });
 
 test('Polyline6 dekodieren', () => {
-  // Beispiel aus der Valhalla-Dokumentation, Präzision 6
+  // Example from the Valhalla documentation
   const punkte = dekodierePolyline6('_izlhA~rlgdF_{geC~ywl@_kwzCn`{nI');
   assert.deepEqual(punkte, [
     [-120.2, 38.5],

@@ -1,5 +1,3 @@
-// Prüft Texte und Pflichtangaben der Seite.
-
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
@@ -26,7 +24,6 @@ const eigeneDateien = [
   ...dateien(join(wurzel, 'tests')).filter((p) => p.endsWith('.js')),
 ];
 
-// Gedankenstriche und Mittelpunkte sollen nirgends vorkommen.
 const VERBOTEN = {
   '\u2014': 'Geviertstrich',
   '\u2013': 'Halbgeviertstrich',
@@ -55,7 +52,7 @@ test('Pflichtangaben auf der Seite', () => {
     'https://github.com/PaulGoldschmidt/reisekostenrechner',
     'https://paul-goldschmidt.de/imprint/',
     'https://paul-goldschmidt.de/privacy',
-    // Pflicht laut Nutzungsbedingungen von Transitous
+    // Required by the Transitous terms of use
     'https://transitous.org/sources/',
     'OpenStreetMap',
   ]) {
@@ -73,11 +70,11 @@ test('Import-Map enthält Prüfsummen für genau die Clippy-Dateien, die clippy.
 
 test('Alle Module der Seite laden, und app.js importiert nur vorhandene Exporte', async () => {
   const appPfad = join(wurzel, 'assets', 'js', 'app.js');
-  // Laden prüft Syntax, Importe und Exporte (etwa umbenannte Funktionen), nicht nur die Syntax
+  // Importing checks imports and exports too (e.g. renamed functions), not just the syntax
   for (const pfad of dateien(join(wurzel, 'assets', 'js')).filter((p) => p.endsWith('.js') && p !== appPfad)) {
     await import(pathToFileURL(pfad).href);
   }
-  // app.js braucht den Browser: Syntax prüfen und Importe mit den echten Exporten abgleichen
+  // app.js needs a browser, so only check its syntax and match its imports against the real exports
   const pruefung = spawnSync(process.execPath, ['--check', appPfad], { encoding: 'utf8' });
   assert.equal(pruefung.status, 0, pruefung.stderr);
   for (const [, namen, ziel] of readFileSync(appPfad, 'utf8').matchAll(/import \{([^}]+)\} from '([^']+)'/g)) {

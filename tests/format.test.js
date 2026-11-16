@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { euro, km, buechergeld, tage, tagen, stundenMinuten } from '../assets/js/ui/format.js';
 
-// Intl trennt Zahl und Währung mit einem geschützten Leerzeichen
+// Intl separates number and currency with a no-break space
 const ohneNbsp = (t) => t.replace(/\u00A0/g, ' ');
 
 test('Beträge und Kilometer', () => {
