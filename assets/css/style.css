@@ -615,6 +615,12 @@ input::placeholder {
   accent-color: var(--akzent);
 }
 
+.schalter-info {
+  margin: 6px 2px 0;
+  color: var(--gedaempft);
+  font-size: 0.8rem;
+}
+
 .meldung {
   margin: 0 0 12px;
   padding: 10px 14px;

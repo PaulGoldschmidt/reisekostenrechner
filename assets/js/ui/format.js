@@ -36,6 +36,12 @@ const FAKTOR = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 1 });
  */
 export const buechergeld = (betrag) => `Das sind ${FAKTOR.format(Math.round(betrag) / BUECHERGELD)}-mal Büchergeld`;
 
+/** 14.1 wird zu "14 Std. 6 Min.". */
+export const stundenMinuten = (stunden) => {
+  const minuten = Math.round(stunden * 60);
+  return `${Math.floor(minuten / 60)} Std. ${minuten % 60} Min.`;
+};
+
 /** Nominativ und Akkusativ: "1 Tag" oder "8 Tage". */
 export const tage = (n) => `${zahl(n)} ${n === 1 ? 'Tag' : 'Tage'}`;
 

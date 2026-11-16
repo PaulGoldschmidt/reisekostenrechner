@@ -96,9 +96,10 @@ export function duenneAus(punkte, maxPunkte = 2000) {
 
 class KeineStrasse extends Error {}
 
-function mitZeitlimit(signal) {
+/** Verknüpft ein optionales Abbruchsignal mit einem Zeitlimit. Auch vom Fahrplan genutzt. */
+export function mitZeitlimit(signal, ms = ZEITLIMIT_MS) {
   const steuerung = new AbortController();
-  const timer = setTimeout(() => steuerung.abort(new DOMException('Zeitüberschreitung', 'TimeoutError')), ZEITLIMIT_MS);
+  const timer = setTimeout(() => steuerung.abort(new DOMException('Zeitüberschreitung', 'TimeoutError')), ms);
   if (signal) {
     if (signal.aborted) steuerung.abort(signal.reason);
     else signal.addEventListener('abort', () => steuerung.abort(signal.reason), { once: true });

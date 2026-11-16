@@ -26,6 +26,10 @@ am besten zu den Beispielen im Merkblatt passt (München nach Hamburg: 793 km st
 2. [OSRM](https://project-osrm.org/) auf dem Server der FOSSGIS für längere Strecken oder als Ersatz
 3. Luftlinie, wenn es keine Straßenverbindung gibt
 
+Ob Bahn oder Fernbus länger als 12 Stunden bräuchten (Bedingung für den Flugzuschuss), prüft der
+Rechner mit dem freien Fahrplandienst [Transitous](https://transitous.org/). Der Haken wird damit
+vorbelegt und lässt sich von Hand ändern.
+
 Die Ortssuche läuft über [Photon](https://photon.komoot.io/), die Karte über
 [MapLibre GL JS](https://maplibre.org/) mit Kacheln von [OpenFreeMap](https://openfreemap.org/).
 Kartendaten © OpenStreetMap-Mitwirkende.

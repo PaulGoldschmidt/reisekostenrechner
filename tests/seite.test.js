@@ -54,6 +54,8 @@ test('Pflichtangaben auf der Seite', () => {
     'https://github.com/PaulGoldschmidt/reisekostenrechner',
     'https://paul-goldschmidt.de/imprint/',
     'https://paul-goldschmidt.de/privacy',
+    // Pflicht laut Nutzungsbedingungen von Transitous
+    'https://transitous.org/sources/',
     'OpenStreetMap',
   ]) {
     assert.ok(html.includes(teil), `fehlt: ${teil}`);

@@ -4,9 +4,11 @@ import { zeigeVeranstaltung, zeigeAuslandsvorhaben, hinweis } from './ui/ergebni
 import { h } from './ui/dom.js';
 import { konfetti } from './ui/konfetti.js';
 import { zeigeAdressTipp, versteckeClippy } from './ui/clippy.js';
-import { km } from './ui/format.js';
+import { km, stundenMinuten } from './ui/format.js';
 import { berechneRoute } from './geo/route.js';
 import { bestimmeGebiet } from './geo/gebiet.js';
+import { schnellsteVerbindung } from './geo/fahrplan.js';
+import { ausserhalbBahnRaum } from './geo/bahnraum.js';
 import { bereiteVor, sucheHochschulen, alsVorschlag } from './geo/hochschulsuche.js';
 import { berechneVeranstaltung } from './rules/veranstaltung.js';
 import { berechneAuslandsvorhaben } from './rules/auslandsvorhaben.js';
@@ -57,13 +59,18 @@ const zustand = {
   von: '',
   bis: '',
   mitfahrende: 0,
+  // Haken "Bahn länger als 12 Stunden": nur relevant, wenn von Hand gesetzt (bahnManuell),
+  // sonst ergibt er sich aus Fahrplan und Interrail-Raum (siehe bahnLage)
+  bahnManuell: false,
   bahnUeber12h: false,
+  fahrplan: { schluessel: null, status: null, stunden: null },
   route: null,
   routeSchluessel: null,
   routeLaedt: false,
 };
 
 let routeAbbruch = null;
+let fahrplanAbbruch = null;
 const gefeiert = new Set();
 const karte = erstelleKarte(el.karte);
 
@@ -100,7 +107,7 @@ function schreibeUrl() {
   if (zustand.von) p.set('von', zustand.von);
   if (zustand.bis) p.set('bis', zustand.bis);
   if (zustand.mitfahrende) p.set('mitfahrende', String(zustand.mitfahrende));
-  if (zustand.bahnUeber12h) p.set('bahn12', '1');
+  if (zustand.bahnManuell) p.set('bahn12', zustand.bahnUeber12h ? '1' : '0');
   const query = p.toString();
   history.replaceState(null, '', query ? `?${query}` : location.pathname);
 }
@@ -114,6 +121,7 @@ function leseUrl() {
   zustand.von = datum(p.get('von'));
   zustand.bis = datum(p.get('bis'));
   zustand.mitfahrende = Math.min(8, Math.max(0, Number.parseInt(p.get('mitfahrende'), 10) || 0));
+  zustand.bahnManuell = p.has('bahn12');
   zustand.bahnUeber12h = p.get('bahn12') === '1';
 }
 
@@ -177,14 +185,17 @@ function zeichneStrecke(startG, zielG) {
   }
 }
 
-function zeichneErgebnis(startG, zielG, mitZeitraum) {
+function zeichneErgebnis(startG, zielG, mitZeitraum, bahn) {
   const { start, ziel, route, anlass } = zustand;
+  // Für die Darstellung: wirksamer Haken und Begründung darunter
+  const anzeige = { ...zustand, bahnUeber12h: bahn.wert, bahnHinweis: bahn.hinweis };
   const aktionen = {
     onMitfahrende: (n) => {
       zustand.mitfahrende = Math.min(8, Math.max(0, n));
       zeichne();
     },
     onBahnUeber12h: (an) => {
+      zustand.bahnManuell = true;
       zustand.bahnUeber12h = an;
       zeichne();
     },
@@ -207,11 +218,11 @@ function zeichneErgebnis(startG, zielG, mitZeitraum) {
       innereuropaeisch: startG.region === 'EU' && zielG.region === 'EU',
       landweg: route.art === 'strasse',
       mitfahrende: zustand.mitfahrende,
-      bahnUeber12h: zustand.bahnUeber12h,
+      bahnUeber12h: bahn.wert,
       aufenthaltTage: zeitraum ? zeitraum.tage : null,
     });
     return {
-      elemente: [kopf, ...meldungen, ...zeigeVeranstaltung(r, zustand, aktionen)],
+      elemente: [kopf, ...meldungen, ...zeigeVeranstaltung(r, anzeige, aktionen)],
       hoechster: r.hoechsterZuschuss,
     };
   }
@@ -233,10 +244,10 @@ function zeichneErgebnis(startG, zielG, mitZeitraum) {
     zielCode: zielG.code,
     landweg: route ? (route.art === 'fehler' ? null : route.art === 'strasse') : null,
     zeitraum,
-    bahnUeber12h: zustand.bahnUeber12h,
+    bahnUeber12h: bahn.wert,
   });
   return {
-    elemente: [kopf, ...meldungen, ...zeigeAuslandsvorhaben(r, zielG, zustand, aktionen)],
+    elemente: [kopf, ...meldungen, ...zeigeAuslandsvorhaben(r, zielG, anzeige, aktionen)],
     hoechster: r.hoechsterZuschuss,
   };
 }
@@ -271,6 +282,65 @@ function zeichneAnlass() {
   }
 }
 
+// Fahrplan und Interrail-Raum für den Haken "Bahn länger als 12 Stunden"
+
+const zielAusserhalbBahnRaum = (zielG) =>
+  zustand.anlass === 'ausland' && Boolean(zielG) && ausserhalbBahnRaum(zielG, zustand.ziel.lat, zustand.ziel.lon);
+
+/** Fahrplan nur abfragen, wenn der Haken angezeigt wird und es eine Straßenverbindung gibt. */
+function fahrplanNoetig(startG, zielG) {
+  const { route, routeLaedt, anlass } = zustand;
+  if (!startG || !zielG || routeLaedt || !route || route.art !== 'strasse') return false;
+  if (startG.inland && zielG.inland) return false;
+  if (anlass === 'veranstaltung') return true;
+  return startG.region === 'EU' && zielG.region === 'EU' && !zielAusserhalbBahnRaum(zielG);
+}
+
+/** Fragt die schnellste Bahn- oder Busverbindung einmal pro Strecke ab. */
+function pruefeFahrplan(startG, zielG) {
+  const schluessel = zustand.routeSchluessel;
+  if (!fahrplanNoetig(startG, zielG) || zustand.fahrplan.schluessel === schluessel) return;
+  if (fahrplanAbbruch) fahrplanAbbruch.abort();
+  fahrplanAbbruch = new AbortController();
+  zustand.fahrplan = { schluessel, status: 'laedt', stunden: null };
+  const fertig = (status, stunden = null) => {
+    if (zustand.fahrplan.schluessel !== schluessel) return;
+    zustand.fahrplan = { schluessel, status, stunden };
+    zeichne();
+  };
+  schnellsteVerbindung(zustand.start, zustand.ziel, { signal: fahrplanAbbruch.signal })
+    .then((stunden) => fertig(stunden === null ? 'keine' : 'fertig', stunden))
+    .catch((fehler) => fehler.name !== 'AbortError' && fertig('fehler'));
+}
+
+const FAHRPLAN_HINWEIS = {
+  laedt: () => 'Fahrplan wird geprüft …',
+  // stundenMinuten endet schon mit dem Punkt von "Min."
+  fertig: (stunden) => `Schnellste Bahn- oder Busverbindung laut Fahrplan: ${stundenMinuten(stunden)}`,
+  keine: () => 'Im Fahrplan keine Verbindung gefunden, bitte selbst prüfen.',
+  fehler: () => 'Der Fahrplan ist gerade nicht erreichbar, bitte selbst prüfen.',
+};
+
+/** Wirksamer Wert des Hakens und die Begründung, die darunter angezeigt wird. */
+function bahnLage(zielG) {
+  const { fahrplan, routeSchluessel } = zustand;
+  const ausserhalb = zielAusserhalbBahnRaum(zielG);
+  const aktuell = fahrplan.schluessel === routeSchluessel && fahrplan.status;
+  const hinweis = ausserhalb
+    ? 'Das Ziel liegt außerhalb des Interrail- und Fernbus-Raums.'
+    : aktuell
+      ? FAHRPLAN_HINWEIS[fahrplan.status](fahrplan.stunden)
+      : null;
+  const automatisch = ausserhalb || (aktuell === 'fertig' && fahrplan.stunden > 12);
+  return { wert: zustand.bahnManuell ? zustand.bahnUeber12h : automatisch, hinweis };
+}
+
+/** Neuer Ort: eine Entscheidung von Hand gilt nicht mehr. */
+function ortGeaendert() {
+  zustand.bahnManuell = false;
+  zustand.bahnUeber12h = false;
+}
+
 function zeichne() {
   const { start, ziel } = zustand;
   const startG = start ? bestimmeGebiet(start.land, start.lat, start.lon) : null;
@@ -278,19 +348,21 @@ function zeichne() {
 
   zeichneAnlass();
   zeichneStrecke(startG, zielG);
+  pruefeFahrplan(startG, zielG);
+  const bahn = bahnLage(zielG);
 
   // Zeitraum nur zeigen, wenn er die Berechnung beeinflusst
   const mitZeitraum = zeitraumNoetig({
     anlass: zustand.anlass,
     ausland: startG && zielG ? !(startG.inland && zielG.inland) : null,
     routenArt: zustand.routeLaedt || !zustand.route ? null : zustand.route.art,
-    bahnUeber12h: zustand.bahnUeber12h,
+    bahnUeber12h: bahn.wert,
   });
   el.zeitraum.hidden = !mitZeitraum;
 
   // Fokus über das Neuzeichnen hinweg erhalten
   const fokus = document.activeElement && el.ergebnis.contains(document.activeElement) ? document.activeElement.dataset : null;
-  const { elemente, hoechster } = zeichneErgebnis(startG, zielG, mitZeitraum);
+  const { elemente, hoechster } = zeichneErgebnis(startG, zielG, mitZeitraum, bahn);
   el.ergebnis.replaceChildren(...elemente);
   if (fokus && fokus.fokus) {
     let ziel2 = el.ergebnis.querySelector(`[data-fokus="${fokus.fokus}"]`);
@@ -321,11 +393,13 @@ const startFeld = new Ortsfeld(el.start, el.startListe, {
   lokalTitel: 'Hochschulen',
   onWahl: (ort) => {
     zustand.start = ort;
+    ortGeaendert();
     ladeRoute();
     zeichne();
   },
   onLeeren: () => {
     zustand.start = null;
+    ortGeaendert();
     ladeRoute();
     zeichne();
   },
@@ -334,6 +408,7 @@ const startFeld = new Ortsfeld(el.start, el.startListe, {
 const zielFeld = new Ortsfeld(el.ziel, el.zielListe, {
   onWahl: (ort) => {
     zustand.ziel = ort;
+    ortGeaendert();
     const routeFertig = ladeRoute();
     zeichne();
     // Nur ein Ort gewählt: Clippy weist auf die genaue Adresse hin, sobald die Route steht
@@ -343,6 +418,7 @@ const zielFeld = new Ortsfeld(el.ziel, el.zielListe, {
   onLeeren: () => {
     versteckeClippy();
     zustand.ziel = null;
+    ortGeaendert();
     ladeRoute();
     zeichne();
   },
