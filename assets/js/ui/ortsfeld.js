@@ -35,6 +35,18 @@ export class Ortsfeld {
     this.timer = null;
     this.abbruch = null;
     this.nummer = 0;
+    // Läuft gerade eine Suche bei der Ortssuche (oder steht sie unmittelbar bevor)?
+    this.sucht = false;
+
+    // Knopf zum Leeren des Feldes, sichtbar sobald Text drinsteht
+    this.leeren = h('button', {
+      type: 'button',
+      class: 'feld-leeren',
+      'aria-label': 'Eingabe löschen',
+      hidden: true,
+      onclick: () => this.loesche(),
+    });
+    eingabe.after(this.leeren);
 
     // Lokale Treffer (Hochschulnamen) sind lang: Liste darf breiter als das Feld sein
     if (lokal) liste.classList.add('vorschlaege-breit');
@@ -59,6 +71,14 @@ export class Ortsfeld {
   setze(ort) {
     this.gewaehlt = ort;
     this.eingabe.value = ort ? ort.label : '';
+    this.leeren.hidden = !ort;
+  }
+
+  /** Feld leeren wie beim Löschen per Tastatur und den Fokus zurückgeben. */
+  loesche() {
+    this.eingabe.value = '';
+    this.beiEingabe();
+    this.eingabe.focus();
   }
 
   /** Laufende Suche abbrechen und Ergebnisse der Ortssuche verwerfen. */
@@ -69,6 +89,7 @@ export class Ortsfeld {
     this.entfernte = [];
     this.meldung = null;
     this.aktiv = -1;
+    this.sucht = false;
   }
 
   /** Ersten Vorschlag markieren, solange noch keiner gewählt ist. */
@@ -77,6 +98,7 @@ export class Ortsfeld {
   }
 
   async beiEingabe() {
+    this.leeren.hidden = !this.eingabe.value;
     if (this.gewaehlt) {
       this.gewaehlt = null;
       this.onLeeren();
@@ -90,6 +112,7 @@ export class Ortsfeld {
       return;
     }
     this.timer = setTimeout(() => this.suche(text), VERZOEGERUNG_MS);
+    this.sucht = true;
 
     if (this.lokal) {
       const lokale = await this.lokal(text);
@@ -97,8 +120,9 @@ export class Ortsfeld {
       if (nummer !== this.nummer) return;
       this.lokale = lokale;
       this.markiereErsten();
-      if (this.lokale.length) this.zeichne();
     }
+    // Sofort zeigen, dass gesucht wird (lokale Treffer stehen schon darüber)
+    this.zeichne();
   }
 
   async suche(text) {
@@ -112,6 +136,7 @@ export class Ortsfeld {
       this.entfernte = [];
       this.meldung = 'Die Ortssuche ist gerade nicht erreichbar.';
     }
+    this.sucht = false;
     this.markiereErsten();
     this.zeichne();
   }
@@ -143,10 +168,18 @@ export class Ortsfeld {
       ...this.lokale.map((ort, i) => option(ort, i)),
       mitGruppen && gruppe('Orte und Adressen'),
       ...entfernte.map((ort, i) => option(ort, this.lokale.length + i)),
+      this.sucht &&
+        h(
+          'li',
+          { class: 'vorschlag-laedt', role: 'presentation' },
+          h('span', { class: 'lade-kreis', 'aria-hidden': 'true' }),
+          'Suche passende Orte …',
+        ),
       this.meldung && h('li', { class: 'vorschlag-meldung', role: 'presentation' }, this.meldung),
     ].filter(Boolean);
 
     this.liste.replaceChildren(...eintraege);
+    this.liste.setAttribute('aria-busy', String(this.sucht));
     if (this.aktiv >= 0) this.eingabe.setAttribute('aria-activedescendant', `${id}-${this.aktiv}`);
     else this.eingabe.removeAttribute('aria-activedescendant');
     if (document.activeElement === this.eingabe && eintraege.length) this.oeffnen();
