@@ -14,9 +14,9 @@ const SICHTBAR_MS = 14000;
 // Größe eines Einzelbilds von Clippy in Pixeln
 const BREITE = 124;
 const HOEHE = 93;
-// So weit ragt Clippy von oben rechts in das Eingabefeld hinein. Höchstens 6 px nach unten,
-// damit der Knopf zum Leeren (8 px unter der Oberkante) klickbar bleibt.
-const UEBERLAPPUNG = { x: 20, y: 6 };
+// So weit ragt Clippy von oben rechts in das Eingabefeld hinein (nach unten begrenzt durch
+// den Knopf zum Leeren, siehe zeigeAdressTipp)
+const UEBERLAPPUNG = { x: 20, y: 20 };
 // Wird so weit gescrollt, hat sich Clippy vom Feld gelöst und verschwindet
 const MAX_SCROLL_PX = 80;
 const TEXT =
@@ -82,8 +82,11 @@ export async function zeigeAdressTipp(feld) {
 
   // Oben rechts auf dem Feld sitzend, leicht überlappend und noch in der linken Spalte.
   // Clippy ist fest im Fenster positioniert, deshalb verschwindet er beim Scrollen.
+  // Nach unten höchstens bis zur Oberkante des Knopfs zum Leeren, damit er klickbar bleibt.
   const r = feld.getBoundingClientRect();
-  agent.moveTo(r.right - BREITE + UEBERLAPPUNG.x, Math.max(8, r.top - HOEHE + UEBERLAPPUNG.y), 0);
+  const knopf = feld.parentElement.querySelector('.feld-leeren')?.getBoundingClientRect();
+  const unten = knopf?.height ? Math.min(r.top + UEBERLAPPUNG.y, knopf.top) : r.top + UEBERLAPPUNG.y;
+  agent.moveTo(r.right - BREITE + UEBERLAPPUNG.x, Math.max(8, unten - HOEHE), 0);
   const startY = window.scrollY;
   beiScroll = () => Math.abs(window.scrollY - startY) > MAX_SCROLL_PX && versteckeClippy();
   window.addEventListener('scroll', beiScroll, { passive: true });
