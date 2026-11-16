@@ -63,7 +63,7 @@ const zustand = {
   // sonst ergibt er sich aus Fahrplan und Interrail-Raum (siehe bahnLage)
   bahnManuell: false,
   bahnUeber12h: false,
-  fahrplan: { schluessel: null, status: null, stunden: null },
+  fahrplan: { schluessel: null, status: null, stunden: null, link: null },
   route: null,
   routeSchluessel: null,
   routeLaedt: false,
@@ -302,23 +302,26 @@ function pruefeFahrplan(startG, zielG) {
   if (!fahrplanNoetig(startG, zielG) || zustand.fahrplan.schluessel === schluessel) return;
   if (fahrplanAbbruch) fahrplanAbbruch.abort();
   fahrplanAbbruch = new AbortController();
-  zustand.fahrplan = { schluessel, status: 'laedt', stunden: null };
-  const fertig = (status, stunden = null) => {
+  zustand.fahrplan = { schluessel, status: 'laedt', stunden: null, link: null };
+  const fertig = (status, verbindung = null) => {
     if (zustand.fahrplan.schluessel !== schluessel) return;
-    zustand.fahrplan = { schluessel, status, stunden };
+    zustand.fahrplan = { schluessel, status, stunden: verbindung?.stunden ?? null, link: verbindung?.link ?? null };
     zeichne();
   };
   schnellsteVerbindung(zustand.start, zustand.ziel, { signal: fahrplanAbbruch.signal })
-    .then((stunden) => fertig(stunden === null ? 'keine' : 'fertig', stunden))
+    .then((verbindung) => fertig(verbindung ? 'fertig' : 'keine', verbindung))
     .catch((fehler) => fehler.name !== 'AbortError' && fertig('fehler'));
 }
 
 const FAHRPLAN_HINWEIS = {
   laedt: () => 'Fahrplan wird geprüft …',
   // stundenMinuten endet schon mit dem Punkt von "Min."
-  fertig: (stunden) => `Schnellste Bahn- oder Busverbindung laut Fahrplan: ${stundenMinuten(stunden)}`,
-  keine: () => 'Im Fahrplan keine Verbindung gefunden, bitte selbst prüfen.',
-  fehler: () => 'Der Fahrplan ist gerade nicht erreichbar, bitte selbst prüfen.',
+  fertig: ({ stunden, link }) => [
+    `Schnellste Bahn- oder Busverbindung laut Fahrplan: ${stundenMinuten(stunden)} `,
+    h('a', { href: link, target: '_blank', rel: 'noopener' }, 'Verbindung ansehen'),
+  ],
+  keine: () => 'Im Fahrplan keine Verbindung gefunden, bitte selbst prüfen :(.',
+  fehler: () => 'Der Fahrplan ist gerade nicht erreichbar (oh no!), bitte selbst prüfen.',
 };
 
 /** Wirksamer Wert des Hakens und die Begründung, die darunter angezeigt wird. */
@@ -329,7 +332,7 @@ function bahnLage(zielG) {
   const hinweis = ausserhalb
     ? 'Das Ziel liegt außerhalb des Interrail- und Fernbus-Raums.'
     : aktuell
-      ? FAHRPLAN_HINWEIS[fahrplan.status](fahrplan.stunden)
+      ? FAHRPLAN_HINWEIS[fahrplan.status](fahrplan)
       : null;
   const automatisch = ausserhalb || (aktuell === 'fertig' && fahrplan.stunden > 12);
   return { wert: zustand.bahnManuell ? zustand.bahnUeber12h : automatisch, hinweis };

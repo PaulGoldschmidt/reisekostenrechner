@@ -9,6 +9,8 @@
 import { mitZeitlimit } from './route.js';
 
 const TRANSITOUS_URL = 'https://api.transitous.org/api/v1/plan';
+// Weboberfläche von Transitous, öffnet eine Verbindung über ihre itineraryId
+const ANSICHT_URL = 'https://api.transitous.org/';
 // Suchfenster ab 6 Uhr UTC: Abfahrten am Vormittag (7 bis 13 Uhr deutscher Zeit)
 const SUCHFENSTER_S = 6 * 3600;
 const ZEITLIMIT_MS = 30000;
@@ -20,19 +22,30 @@ export function stichtag(jetzt = new Date()) {
   return tag;
 }
 
-/** Dauer der schnellsten Verbindung mit Bahn oder Bus in Stunden, null wenn es keine gibt. */
-export function schnellsteStunden(antwort) {
-  const dauern = (antwort.itineraries || [])
-    .filter((weg) => (weg.legs || []).some((abschnitt) => abschnitt.mode && abschnitt.mode !== 'WALK'))
-    .map((weg) => weg.duration);
-  return dauern.length ? Math.min(...dauern) / 3600 : null;
+/** Schnellste Verbindung mit Bahn oder Bus aus einer Antwort von Transitous, null wenn es keine gibt. */
+export function schnellsteAus(antwort) {
+  const wege = (antwort.itineraries || []).filter((weg) =>
+    (weg.legs || []).some((abschnitt) => abschnitt.mode && abschnitt.mode !== 'WALK'),
+  );
+  if (!wege.length) return null;
+  const schnellster = wege.reduce((a, b) => (b.duration < a.duration ? b : a));
+  return { stunden: schnellster.duration / 3600, id: schnellster.id };
+}
+
+/** Link auf die Verbindung in der Weboberfläche von Transitous. */
+export function ansichtLink(id, vonName, nachName) {
+  const url = new URL(ANSICHT_URL);
+  url.searchParams.set('itineraryId', id);
+  if (vonName) url.searchParams.set('fromName', vonName);
+  if (nachName) url.searchParams.set('toName', nachName);
+  return url.href;
 }
 
 /**
- * @param {{lat: number, lon: number}} a
- * @param {{lat: number, lon: number}} b
+ * @param {{lat: number, lon: number, name?: string}} a
+ * @param {{lat: number, lon: number, name?: string}} b
  * @param {{signal?: AbortSignal}} [optionen]
- * @returns {Promise<number|null>} Stunden der schnellsten Verbindung oder null
+ * @returns {Promise<{stunden: number, link: string}|null>} schnellste Verbindung oder null
  */
 export async function schnellsteVerbindung(a, b, { signal } = {}) {
   const url = new URL(TRANSITOUS_URL);
@@ -44,7 +57,8 @@ export async function schnellsteVerbindung(a, b, { signal } = {}) {
   try {
     const antwort = await fetch(url, { signal: zeit.signal });
     if (!antwort.ok) throw new Error(`Transitous: ${antwort.status}`);
-    return schnellsteStunden(await antwort.json());
+    const schnellste = schnellsteAus(await antwort.json());
+    return schnellste && { stunden: schnellste.stunden, link: ansichtLink(schnellste.id, a.name, b.name) };
   } finally {
     zeit.fertig();
   }

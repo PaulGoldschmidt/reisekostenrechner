@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { stichtag, schnellsteStunden } from '../assets/js/geo/fahrplan.js';
+import { stichtag, schnellsteAus, ansichtLink } from '../assets/js/geo/fahrplan.js';
 import { ausserhalbBahnRaum } from '../assets/js/geo/bahnraum.js';
 import { bestimmeGebiet } from '../assets/js/geo/gebiet.js';
 
@@ -14,14 +14,21 @@ test('Stichtag ist ein Mittwoch mindestens zwei Tage voraus, 6 Uhr UTC', () => {
 test('Schnellste Verbindung ignoriert reine Fußwege', () => {
   const antwort = {
     itineraries: [
-      { duration: 50760, legs: [{ mode: 'WALK' }, { mode: 'HIGHSPEED_RAIL' }, { mode: 'WALK' }] },
-      { duration: 25560, legs: [{ mode: 'HIGHSPEED_RAIL' }, { mode: 'BUS' }] },
-      { duration: 3600, legs: [{ mode: 'WALK' }] },
+      { id: 'lang', duration: 50760, legs: [{ mode: 'WALK' }, { mode: 'HIGHSPEED_RAIL' }, { mode: 'WALK' }] },
+      { id: 'schnell', duration: 25560, legs: [{ mode: 'HIGHSPEED_RAIL' }, { mode: 'BUS' }] },
+      { id: 'zu-fuss', duration: 3600, legs: [{ mode: 'WALK' }] },
     ],
   };
-  assert.equal(schnellsteStunden(antwort), 7.1);
-  assert.equal(schnellsteStunden({ itineraries: [] }), null);
-  assert.equal(schnellsteStunden({}), null);
+  assert.deepEqual(schnellsteAus(antwort), { stunden: 7.1, id: 'schnell' });
+  assert.equal(schnellsteAus({ itineraries: [] }), null);
+  assert.equal(schnellsteAus({}), null);
+});
+
+test('Link auf die Verbindung bei Transitous', () => {
+  assert.equal(
+    ansichtLink('Ab/c+d=', 'Leipzig', 'Brüssel'),
+    'https://api.transitous.org/?itineraryId=Ab%2Fc%2Bd%3D&fromName=Leipzig&toName=Br%C3%BCssel',
+  );
 });
 
 test('Interrail- und Fernbus-Raum', () => {
