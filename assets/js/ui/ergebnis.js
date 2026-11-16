@@ -10,6 +10,8 @@ const CO2 = 'CO₂';
 /** Betrag mit Hinweis beim Überfahren mit der Maus, z. B. "Das sind 0,19-mal Büchergeld". */
 const geld = (betrag) => h('span', { class: 'tipp', 'data-tipp': buechergeld(betrag) }, euro(betrag));
 
+const GERUNDET = () => h('p', { class: 'fussnote' }, 'Alle Beträge sind auf volle Euro gerundet.');
+
 const OHNE_LANDWEG = () =>
   hinweis('Keine Straßenverbindung.', 'Bahn, Bus, Auto und Fahrrad kommen nicht in Frage, bezuschusst werden kann nur ein Flug.');
 
@@ -214,6 +216,7 @@ export function zeigeVeranstaltung(r, z, aktionen) {
   }
 
   elemente.push(h('div', { class: 'posten-raster' }, bahn, auto, flug, rad));
+  elemente.push(GERUNDET());
   return elemente;
 }
 
@@ -320,6 +323,7 @@ export function zeigeAuslandsvorhaben(r, ziel, z, aktionen) {
   } else {
     elemente.push(h('p', { class: 'fussnote' }, 'Ab 8 Wochen kommen weitere Leistungen hinzu, etwa die Auslandspauschale. Diese berechnet der Rechner nicht.'));
   }
+  elemente.push(GERUNDET());
   return elemente;
 }
 
