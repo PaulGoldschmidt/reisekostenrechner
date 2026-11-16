@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
 import { BASIS as CLIPPY_BASIS } from '../assets/js/ui/clippy.js';
 
 const wurzel = fileURLToPath(new URL('..', import.meta.url));
@@ -68,4 +69,12 @@ test('Import-Map enthält Prüfsummen für genau die Clippy-Dateien, die clippy.
   const erwartet = ['index.mjs', 'agents/clippy/agent.mjs', 'agents/clippy/map.mjs'].map((d) => CLIPPY_BASIS + d);
   assert.deepEqual(Object.keys(karte.integrity).sort(), erwartet.sort());
   for (const pruefsumme of Object.values(karte.integrity)) assert.match(pruefsumme, /^sha384-[A-Za-z0-9+/]{64}$/);
+});
+
+test('Alle Skripte der Seite sind syntaktisch gültig', () => {
+  // Fängt Fehler in Dateien ab, die nur im Browser laufen und sonst nicht getestet werden
+  for (const pfad of eigeneDateien.filter((p) => p.endsWith('.js'))) {
+    const ergebnis = spawnSync(process.execPath, ['--check', pfad], { encoding: 'utf8' });
+    assert.equal(ergebnis.status, 0, `${relative(wurzel, pfad)}: ${ergebnis.stderr}`);
+  }
 });
