@@ -1,10 +1,8 @@
-// Karte mit MapLibre GL JS und Kacheln von OpenFreeMap im eigenen dunklen Farbschema.
-
 import { faerbeStil, FARBEN, stadtpunkt } from './kartenstil.js';
 import { istDesktop } from './medien.js';
 
 const STIL_URL = 'https://tiles.openfreemap.org/styles/dark';
-// Startansicht: 50,707 Grad Nord, 7,149 Grad Ost
+// Centered on Bonn
 const START = { center: [7.149, 50.707], zoom: 10 };
 
 const DEUTSCH = {
@@ -30,6 +28,8 @@ function markerElement(art) {
 /**
  * @param {HTMLElement} container
  * @returns {{zeige: (start: object|null, ziel: object|null, route: object|null) => void}}
+ *   start and ziel are places with lat and lon, route is a result of berechneRoute() (geo/route.js).
+ *   zeige() may be called before the map has loaded; the last call is replayed on load.
  */
 export function erstelleKarte(container) {
   const maplibregl = window.maplibregl;
@@ -50,7 +50,7 @@ export function erstelleKarte(container) {
   });
   karte.touchZoomRotate.disableRotation();
   karte.setStyle(STIL_URL, { transformStyle: (_vorher, stil) => faerbeStil(stil) });
-  // Der Sprite des Stils enthält keinen Punkt für Städte
+  // The OpenFreeMap sprite has no "circle-11" image for city dots, so we draw our own.
   karte.on('styleimagemissing', (e) => {
     if (e.id === 'circle-11' && !karte.hasImage(e.id)) karte.addImage(e.id, stadtpunkt(11));
   });
@@ -118,14 +118,15 @@ export function erstelleKarte(container) {
         properties: { art: route.art },
         geometry: { type: 'LineString', coordinates: route.geometrie },
       });
-      // Zielmarker auf der fortlaufenden Linie platzieren (Datumsgrenze)
+      // The line keeps longitudes continuous across the date line, so its end can differ from
+      // ziel by 360 degrees. Put the marker on the line end to keep both together.
       const ende = route.geometrie[route.geometrie.length - 1];
       if (ziel) marker.ziel.setLngLat(ende);
       const grenzen = route.geometrie.reduce(
         (b, p) => b.extend(p),
         new maplibregl.LngLatBounds(route.geometrie[0], route.geometrie[0]),
       );
-      // Auf dem Desktop liegt oben links die Streckenangabe über der Karte
+      // On desktop the route summary (.strecke in style.css) overlays the top left of the map.
       const abstand = istDesktop()
         ? { top: 110, right: 70, bottom: 60, left: 60 }
         : { top: 36, right: 48, bottom: 36, left: 36 };

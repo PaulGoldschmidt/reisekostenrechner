@@ -1,18 +1,18 @@
-// Reisekostenzuschüsse für Stipendiatinnen und Stipendiaten des DAAD,
-// gültig ab 01.01.2026. Die Studienstiftung übernimmt diese Sätze für die
-// Auslandsförderung (laut Studienstiftung zuletzt aktualisiert am 20.02.2026).
+// DAAD travel allowances (Reisekostenzuschüsse) for DAAD scholarship holders, valid from
+// 1 January 2026. The Studienstiftung applies these rates to its Auslandsförderung
+// (last updated on 20 February 2026 according to the Studienstiftung).
 //
-// hinRueck: Hin- und Rückreisepauschale in Euro
-// einfach:  Hin- oder Rückreisepauschale in Euro
-// region:   Ländergruppe für die Mindestvorhabendauer bei Flugreisen (siehe regionen.js),
-//           zugeordnet nach der Weltkarte im Reise-Flowchart der Studienstiftung
-// kontinent: siehe regionen.js
+// hinRueck:  flat amount in euros for the outbound and return journey together
+// einfach:   flat amount in euros for the outbound or the return journey alone
+// region:    country group for the minimum stay on flights (see regionen.js), assigned
+//            from the world map in the Reise-Flowchart of the Studienstiftung
+// kontinent: only for the same-continent rule (see regionen.js)
 //
-// Länder mit Teilgebieten in der DAAD-Liste (USA Ost/West, Kanada Ost/West,
-// Russland europ./asiat. Teil, Spanien Festland/Kanaren) haben jeweils
-// identische Sätze und stehen deshalb nur einmal in der Liste.
+// Countries split into parts in the DAAD list (USA east/west, Canada east/west, Russia
+// European/Asian part, Spain mainland/Canary Islands) have the same rates for every part
+// and are therefore listed only once.
 //
-// Unsichere Zuordnungen sind mit "PRUEFEN" markiert.
+// Uncertain assignments are marked "TO CHECK:".
 
 export const LAENDER = Object.freeze({
   AF: { name: 'Afghanistan', hinRueck: 1188, einfach: 594, region: 'ZSA', kontinent: 'AS' },
@@ -156,7 +156,7 @@ export const LAENDER = Object.freeze({
   RE: { name: 'Réunion', hinRueck: 1735, einfach: 868, region: 'SSA', kontinent: 'AF' },
   RW: { name: 'Ruanda', hinRueck: 1188, einfach: 594, region: 'SSA', kontinent: 'AF' },
   RO: { name: 'Rumänien', hinRueck: 309, einfach: 155, region: 'EU', kontinent: 'EU' },
-  // Asiatischer Teil wird in gebiet.js anhand des Längengrads erkannt.
+  // gebiet.js detects the Asian part by longitude.
   RU: { name: 'Russische Föderation', hinRueck: 309, einfach: 155, region: 'EU', kontinent: 'EU' },
   ZM: { name: 'Sambia', hinRueck: 1188, einfach: 594, region: 'SSA', kontinent: 'AF' },
   WS: { name: 'Samoa', hinRueck: 1735, einfach: 868, region: 'OZ', kontinent: 'OC' },
@@ -195,7 +195,7 @@ export const LAENDER = Object.freeze({
   TD: { name: 'Tschad', hinRueck: 1188, einfach: 594, region: 'SSA', kontinent: 'AF' },
   CZ: { name: 'Tschechien', hinRueck: 211, einfach: 106, region: 'EU', kontinent: 'EU' },
   TN: { name: 'Tunesien', hinRueck: 309, einfach: 155, region: 'MENA', kontinent: 'AF' },
-  // PRUEFEN: Im Flowchart außerhalb Europas eingefärbt, liegt aber im Interrail-Raum.
+  // TO CHECK: coloured as outside Europe in the flowchart, but covered by Interrail.
   TR: { name: 'Türkei', hinRueck: 395, einfach: 198, region: 'MENA', kontinent: 'AS' },
   TM: { name: 'Turkmenistan', hinRueck: 580, einfach: 290, region: 'ZSA', kontinent: 'AS' },
   UG: { name: 'Uganda', hinRueck: 1188, einfach: 594, region: 'SSA', kontinent: 'AF' },
@@ -210,12 +210,12 @@ export const LAENDER = Object.freeze({
   GB: { name: 'Vereinigtes Königreich', hinRueck: 309, einfach: 155, region: 'EU', kontinent: 'EU' },
   VN: { name: 'Vietnam', hinRueck: 1735, einfach: 868, region: 'OSA', kontinent: 'AS' },
   CF: { name: 'Zentralafrikanische Republik', hinRueck: 1188, einfach: 594, region: 'SSA', kontinent: 'AF' },
-  // PRUEFEN: Im Flowchart nicht erkennbar, als EU-Mitglied Europa zugeordnet.
+  // TO CHECK: not identifiable in the flowchart, assigned to Europe as an EU member state.
   CY: { name: 'Zypern', hinRueck: 395, einfach: 198, region: 'EU', kontinent: 'EU' },
 });
 
-// Gebiete ohne eigenen DAAD-Satz, die trotzdem als Start- oder Zielort
-// vorkommen können. Für sie wird nur die Region benötigt.
+// Areas without their own DAAD rate that can still be the start or destination.
+// Only region and kontinent are needed for them.
 export const WEITERE_GEBIETE = Object.freeze({
   DE: { name: 'Deutschland', region: 'EU', kontinent: 'EU' },
   AX: { name: 'Åland', region: 'EU', kontinent: 'EU' },

@@ -1,7 +1,4 @@
-// Suche im lokalen Hochschulverzeichnis, ohne Netzwerkanfragen.
-// Findet Hochschulen über Ort ("Hamburg"), Namen ("Uni Bonn") oder Kurznamen ("TUM", "HAW").
-
-/** Kleinbuchstaben ohne Akzente, ß als ss. Auch vom Erzeugungsskript genutzt. */
+/** Lowercase without diacritics, ß as ss. Also used by scripts/hochschulen.mjs. */
 export const normal = (text) =>
   String(text || '')
     .toLowerCase()
@@ -11,7 +8,6 @@ export const normal = (text) =>
 
 export const woerter = (text) => normal(text).split(/[^a-z0-9]+/).filter(Boolean);
 
-/** Bereitet das Verzeichnis einmalig für schnelle Suchen vor. */
 export function bereiteVor(hochschulen) {
   return hochschulen.map((h) => ({
     h,
@@ -27,7 +23,7 @@ export function bereiteVor(hochschulen) {
  * @param {ReturnType<typeof bereiteVor>} verzeichnis
  * @param {string} anfrage
  * @param {number} [max]
- * @returns {Array<object>} passende Hochschulen, beste zuerst
+ * @returns {Array<object>} matching universities, best match first
  */
 export function sucheHochschulen(verzeichnis, anfrage, max = 4) {
   const q = normal(anfrage).trim();
@@ -36,7 +32,6 @@ export function sucheHochschulen(verzeichnis, anfrage, max = 4) {
 
   const treffer = [];
   for (const v of verzeichnis) {
-    // Jedes eingegebene Wort muss Anfang eines Wortes der Hochschule sein
     const passt = teile.every((t) => {
       for (const w of v.woerter) if (w.startsWith(t)) return true;
       return false;
@@ -47,11 +42,11 @@ export function sucheHochschulen(verzeichnis, anfrage, max = 4) {
     const ortTreffer = v.orte.includes(q);
     if (ortTreffer) punkte += 50;
     else if (v.orte.some((o) => o.startsWith(q))) punkte += 30;
-    // Ohne Kurznamen ist v.kurz leer und passt nie, weil q mindestens zwei Zeichen hat
+    // An empty v.kurz (no short name) never matches because q has at least two characters.
     if (v.kurz === q) punkte += 60;
     else if (v.kurz.startsWith(q)) punkte += 35;
     if (v.aliase.includes(q)) punkte += 45;
-    // Bei der Suche nach einer Stadt entscheiden Größe und HRK, nicht der Namensanfang
+    // For a city search, size and HRK membership decide the order, not the name prefix.
     if (!ortTreffer && v.name.startsWith(q)) punkte += 20;
     if (v.h.hrk) punkte += 15;
     punkte += Math.log10(1 + v.h.studierende) * 4;
@@ -63,7 +58,6 @@ export function sucheHochschulen(verzeichnis, anfrage, max = 4) {
     .map((t) => t.h);
 }
 
-/** Vorschlag für das Ortsfeld aus einem Verzeichniseintrag. */
 export function alsVorschlag(h) {
   return {
     art: 'hochschule',

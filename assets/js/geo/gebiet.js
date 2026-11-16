@@ -1,11 +1,7 @@
-// Ordnet einen Ort (Ländercode aus der Ortssuche plus Koordinaten) einem
-// Gebiet mit DAAD-Satz, Region und Kontinent zu.
-
 import { LAENDER, WEITERE_GEBIETE } from '../data/laender.js';
 
-// Gebiete, die in OpenStreetMap zu einem anderen Staat gehören, in der
-// DAAD-Liste aber eigene Sätze haben. Grenzen grob als Rechteck
-// [Süd, West, Nord, Ost].
+// Areas that OpenStreetMap reports as part of another state but that have their own
+// DAAD rate or region here. Boxes are rough bounds as [south, west, north, east].
 const UEBERSEE = [
   { staat: 'FR', code: 'GP', box: [15.8, -61.9, 16.6, -60.9] },
   { staat: 'FR', code: 'MQ', box: [14.3, -61.3, 14.95, -60.75] },
@@ -22,13 +18,13 @@ const UEBERSEE = [
   { staat: 'CN', code: 'MO', box: [22.1, 113.52, 22.22, 113.62] },
 ];
 
-// Ostgrenze des europäischen Teils Russlands (Ural, grob).
+// Rough eastern border of European Russia (Ural Mountains) as longitude.
 const URAL_LAENGE = 60;
 
 const inBox = ([s, w, n, o], lat, lon) => lat >= s && lat <= n && lon >= w && lon <= o;
 
 /**
- * @param {string} laendercode ISO-3166-1-Code aus der Ortssuche (z. B. "DE")
+ * @param {string} laendercode ISO 3166-1 code from the place search (for example "DE")
  * @param {number} lat
  * @param {number} lon
  * @returns {{code: string, name: string, region: string|null, kontinent: string|null,

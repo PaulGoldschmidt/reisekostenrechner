@@ -1,6 +1,6 @@
-// Ländergruppen mit Mindestvorhabendauer bei Flugreisen.
-// Grundlage: "Regelungen und Bedingungen für Auslandsvorhaben ab 1. Juli 2025"
-// (Nachhaltige Auslandsmobilität) und Reise-Flowchart der Studienstiftung.
+// Country groups with the minimum stay in days (mindestTage) for a subsidised flight.
+// Sources: "Regelungen und Bedingungen für Auslandsvorhaben ab 1. Juli 2025"
+// (Nachhaltige Auslandsmobilität) and the Reise-Flowchart of the Studienstiftung.
 
 export const REGIONEN = Object.freeze({
   EU: { name: 'Europa', mindestTage: 8 },
@@ -13,8 +13,8 @@ export const REGIONEN = Object.freeze({
   OZ: { name: 'Australien und Ozeanien', mindestTage: 36 },
 });
 
-// Kontinente für die Regel "Anreise aus einem anderen Land desselben
-// (außereuropäischen) Kontinents".
+// Continents are separate from the regions above. They are only used for the rule that
+// coming from another country on the same non-European continent is subsidised one way only.
 export const KONTINENTE = Object.freeze({
   EU: 'Europa',
   AF: 'Afrika',

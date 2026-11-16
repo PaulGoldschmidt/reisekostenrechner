@@ -1,5 +1,5 @@
-// Die Reisebeispiele aus dem Merkblatt der Studienstiftung (Stand Dezember 2025)
-// als Testfälle. Die Kilometer stammen direkt aus dem Merkblatt.
+// The travel examples from the Studienstiftung Merkblatt (as of December 2025) as test cases.
+// The distances are taken directly from the Merkblatt.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -68,7 +68,6 @@ test('Leipzig nach Brüssel (680 km): Bahn 136 Euro, Auto mit 1 Mitfahrenden 136
   assert.equal(r.kmGesamt, 1360);
   assert.equal(r.bahn.betrag, 136);
   assert.equal(r.auto.betrag, 136);
-  // Bahnfahrt dauert weniger als 12 h
   assert.equal(r.flug.status, 'bahn-unter-12h');
   assert.equal(r.flug.mitKompensation, 0);
 });

@@ -1,6 +1,5 @@
-// Dunkle Farbpalette für den Kartenstil "dark" von OpenFreeMap.
-// Die Farben passen zu den CSS-Variablen in style.css.
-
+// Palette for OpenFreeMap's "dark" style. Keep in sync with style.css: hintergrund and halo
+// match --hintergrund, akzent matches --akzent, land matches the .karte background.
 export const FARBEN = Object.freeze({
   hintergrund: '#0e1013',
   akzent: '#c8f169',
@@ -32,7 +31,6 @@ export const FARBEN = Object.freeze({
 
 const F = FARBEN;
 
-// Farben je Ebene des Stils, Schlüssel ist die Ebenen-ID
 const EBENEN = {
   background: { 'background-color': F.land },
   water: { 'fill-color': F.wasser },
@@ -81,7 +79,7 @@ const EBENEN = {
   place_country_major: { 'text-color': F.textLand, 'text-halo-color': F.halo },
 };
 
-// Rückfallfarben für Ebenen, die der Stil künftig neu bekommt
+// Fallback by layer type for layers OpenFreeMap may add to the style later.
 const STANDARD = {
   background: { 'background-color': F.land },
   fill: { 'fill-color': F.land },
@@ -91,15 +89,15 @@ const STANDARD = {
 
 const DEUTSCHER_NAME = ['coalesce', ['get', 'name:de'], ['get', 'name:latin'], ['get', 'name']];
 
-// Orts- und Straßennamen in normaler Schreibweise, nur Regionen und Länder in Versalien
+// The style sets all place and street labels in capitals; only regions and countries keep that.
 const NORMALE_SCHREIBUNG = new Set([
   'highway_name_other', 'place_other', 'place_suburb', 'place_village',
   'place_town', 'place_city', 'place_city_large',
 ]);
 
 /**
- * Punkt für Städte ("circle-11"), der im Sprite des Stils fehlt.
- * @returns {{width: number, height: number, data: Uint8ClampedArray}}
+ * City dot ("circle-11") that is missing from the style's sprite.
+ * @returns {{width: number, height: number, data: Uint8ClampedArray}} RGBA image for map.addImage()
  */
 export function stadtpunkt(groesse = 11) {
   const data = new Uint8ClampedArray(groesse * groesse * 4);
@@ -108,7 +106,7 @@ export function stadtpunkt(groesse = 11) {
   for (let y = 0; y < groesse; y++) {
     for (let x = 0; x < groesse; x++) {
       const abstand = Math.hypot(x - mitte, y - mitte);
-      // weicher Rand, Radius etwa 3 Pixel
+      // Radius about 3 px with a 1 px soft edge
       const deckung = Math.max(0, Math.min(1, 3.5 - abstand));
       const i = (y * groesse + x) * 4;
       data.set([r, g, b, Math.round(deckung * 255)], i);
@@ -117,20 +115,16 @@ export function stadtpunkt(groesse = 11) {
   return { width: groesse, height: groesse, data };
 }
 
-/**
- * Färbt einen MapLibre-Stil um und stellt Ortsnamen auf Deutsch um.
- * Gibt einen neuen Stil zurück, der übergebene bleibt unverändert.
- */
+/** Recolors a MapLibre style and switches labels to German names. Returns a copy, the input stays unchanged. */
 export function faerbeStil(stil) {
   const neu = structuredClone(stil);
   neu.layers = neu.layers.map((ebene) => {
     const farben = EBENEN[ebene.id] || STANDARD[ebene.type];
     if (!farben) return ebene;
     const paint = { ...(ebene.paint || {}) };
-    // Muster wie "wood-pattern" fehlen im Sprite des Stils und überdecken die Farbe
+    // Patterns such as "wood-pattern" are missing from the style's sprite and would hide the fill color.
     delete paint['fill-pattern'];
     for (const [name, wert] of Object.entries(farben)) {
-      // Nur vorhandene Farbeigenschaften ersetzen, bei Symbolen ohne Text nichts tun
       if (ebene.type === 'symbol' && !(ebene.layout && ebene.layout['text-field'])) continue;
       paint[name] = wert;
     }

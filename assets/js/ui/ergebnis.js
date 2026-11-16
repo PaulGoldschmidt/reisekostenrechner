@@ -1,5 +1,3 @@
-// Darstellung der Ergebnisse als Karten je Verkehrsmittel.
-
 import { h } from './dom.js';
 import { euro, satz, km, tage, tagen, buechergeld, stundenMinuten } from './format.js';
 import { VERANSTALTUNG } from '../rules/veranstaltung.js';
@@ -7,7 +5,7 @@ import { AUSLANDSVORHABEN } from '../rules/auslandsvorhaben.js';
 
 const CO2 = 'CO₂';
 
-/** Betrag mit Hinweis beim Überfahren mit der Maus, z. B. "Das sind 0,19-mal Büchergeld". */
+/** Amount with a CSS hover tooltip (data-tipp) comparing it to the Büchergeld, e.g. "Das sind 0,19-mal Büchergeld". */
 const geld = (betrag) => h('span', { class: 'tipp', 'data-tipp': buechergeld(betrag) }, euro(betrag));
 
 const GERUNDET = () => h('p', { class: 'fussnote' }, 'Alle Beträge sind auf volle Euro gerundet.');
@@ -31,10 +29,11 @@ function hinweis(titel, text, art = 'info') {
   return h('div', { class: `meldung meldung-${art}`, role: art === 'warnung' ? 'alert' : null }, h('strong', {}, titel), ' ', text);
 }
 
-// Begründung unter dem Haken "Bahn länger als 12 Stunden", siehe bahnLage in app.js
+// Reason shown under the "train longer than 12 hours" checkbox, keyed by the timetable status
+// that bahnLage in app.js passes on.
 const FAHRPLAN_TEXT = {
   laedt: () => 'Fahrplan wird geprüft …',
-  // stundenMinuten endet schon mit dem Punkt von "Min."
+  // No period after the duration: stundenMinuten already ends with the one in "Min."
   fertig: ({ stunden, link }) => [
     `Schnellste Bahn- oder Busverbindung laut Fahrplan: ${stundenMinuten(stunden)} `,
     h('a', { href: link, target: '_blank', rel: 'noopener' }, 'Verbindung ansehen'),
@@ -62,7 +61,7 @@ function schalter({ id, beschriftung, an, onAendern, info = null }) {
     }),
     h('span', {}, beschriftung),
   );
-  // Begründung für den automatisch gesetzten Haken, etwa die Fahrzeit laut Fahrplan
+  // info explains an automatically set checkbox, e.g. the travel time from the timetable.
   if (!info) return kasten;
   return h('div', { class: 'schalter-gruppe' }, kasten, h('p', { class: 'schalter-info' }, info));
 }
@@ -107,12 +106,10 @@ const teilText = (t) =>
 
 const teileText = (teile) => teile.flatMap((t, i) => [i ? ', ' : '', `${teilText(t)} `, geld(t.betrag)]);
 
-// Veranstaltung
-
 /**
- * @param {object} r Ergebnis von berechneVeranstaltung
- * @param {object} z Zustand mit mitfahrende und bahnUeber12h
- * @param {object} aktionen onMitfahrende, onBahnUeber12h
+ * @param {object} r result of berechneVeranstaltung
+ * @param {object} z display state with mitfahrende, bahnUeber12h and bahnHinweis
+ * @param {object} aktionen callbacks onMitfahrende(n) and onBahnUeber12h(an)
  */
 export function zeigeVeranstaltung(r, z, aktionen) {
   const V = VERANSTALTUNG;
@@ -126,10 +123,9 @@ export function zeigeVeranstaltung(r, z, aktionen) {
 
   if (!r.landweg) elemente.push(OHNE_LANDWEG());
 
-  // Bahn/Bus
   let bahn = null;
   if (!r.bahn.verfuegbar) {
-    // keine Karte, siehe Hinweis oben
+    // No card: the OHNE_LANDWEG notice above covers this case.
   } else if (r.unterMindestdistanz) bahn = posten({ titel: 'Bahn/Bus', betrag: geld(0), gedimmt: true });
   else {
     bahn = posten({
@@ -149,7 +145,6 @@ export function zeigeVeranstaltung(r, z, aktionen) {
     });
   }
 
-  // Auto
   let auto = null;
   if (r.auto.verfuegbar) {
     auto = posten({
@@ -171,7 +166,6 @@ export function zeigeVeranstaltung(r, z, aktionen) {
     });
   }
 
-  // Flugzeug
   const f = r.flug;
   let flug;
   if (f.status === 'inland') {
@@ -214,10 +208,9 @@ export function zeigeVeranstaltung(r, z, aktionen) {
     });
   }
 
-  // Fahrrad / zu Fuß
   let rad = null;
   if (!r.rad.verfuegbar) {
-    // keine Karte, siehe Hinweis oben
+    // No card: the OHNE_LANDWEG notice above covers this case.
   } else if (r.unterMindestdistanz) rad = posten({ titel: 'Fahrrad oder zu Fuß', betrag: geld(0), gedimmt: true });
   else if (r.rad.ausland) {
     rad = posten({
@@ -242,13 +235,11 @@ export function zeigeVeranstaltung(r, z, aktionen) {
   return elemente;
 }
 
-// Auslandsvorhaben
-
 /**
- * @param {object} r Ergebnis von berechneAuslandsvorhaben
- * @param {object} ziel Gebiet des Ziels (aus bestimmeGebiet)
- * @param {object} z Zustand mit bahnUeber12h
- * @param {object} aktionen onBahnUeber12h
+ * @param {object} r result of berechneAuslandsvorhaben
+ * @param {object} ziel destination area from bestimmeGebiet
+ * @param {object} z display state with bahnUeber12h and bahnHinweis
+ * @param {object} aktionen callback onBahnUeber12h(an)
  */
 export function zeigeAuslandsvorhaben(r, ziel, z, aktionen) {
   const A = AUSLANDSVORHABEN;
@@ -272,7 +263,6 @@ export function zeigeAuslandsvorhaben(r, ziel, z, aktionen) {
     elemente.push(hinweis('Länger als ein Jahr.', 'Hinreise- und Rückreisezuschuss werden getrennt gezahlt, zu Beginn und zum Ende des Aufenthalts.'));
   }
 
-  // Ohne Flugzeug
   const land = r.land.verfuegbar
     ? posten({
         titel: 'Bahn, Bus, Auto oder Fahrrad',
@@ -283,7 +273,6 @@ export function zeigeAuslandsvorhaben(r, ziel, z, aktionen) {
     : null;
   if (!land) elemente.push(OHNE_LANDWEG());
 
-  // Flugzeug
   const f = r.flug;
   let flug;
   const dauerAngabe = f.tage === null ? '' : ` Angegeben ${f.tage === 1 ? 'ist' : 'sind'} ${tage(f.tage)}.`;

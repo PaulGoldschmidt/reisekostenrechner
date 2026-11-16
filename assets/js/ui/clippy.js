@@ -1,23 +1,21 @@
-// Clippy weist darauf hin, dass statt eines Ortes auch die genaue Adresse möglich ist.
-//
-// Nur auf dem Desktop, nur einmal pro Besuch und nicht bei reduzierter Bewegung.
-// Bibliothek und Figur werden erst bei Bedarf von jsDelivr geladen (clippyjs, MIT, ohne
-// weitere Abhängigkeiten). Die Prüfsummen stehen in der Import-Map in index.html.
-// Clippy, der Name und alle Grafiken gehören Microsoft.
+// Clippy suggests entering the exact address instead of just a town.
+// The clippyjs library (MIT, no dependencies) and the Clippy assets are fetched from jsDelivr
+// only when needed; their integrity hashes live in the import map in index.html.
+// Clippy, the name and all artwork are owned by Microsoft.
 
 import { istDesktop, mitMaus, reduzierteBewegung } from './medien.js';
 
-// Version und Prüfsummen müssen zur Import-Map in index.html passen (siehe tests/seite.test.js)
+// The version must match the import map in index.html (checked by tests/seite.test.js).
 export const BASIS = 'https://cdn.jsdelivr.net/npm/clippyjs@0.1.0/dist/';
 const SCHLUESSEL = 'reisekostenrechner:clippy';
 const SICHTBAR_MS = 14000;
-// Größe eines Einzelbilds von Clippy in Pixeln
+// Size of one Clippy animation frame in px
 const BREITE = 124;
 const HOEHE = 93;
-// So weit ragt Clippy von oben rechts in das Eingabefeld hinein (nach unten begrenzt durch
-// den Knopf zum Leeren, siehe zeigeAdressTipp)
+// How far Clippy overlaps the top right corner of the field, in px (the clear button limits
+// how low he goes, see zeigeAdressTipp)
 const UEBERLAPPUNG = { x: 20, y: 20 };
-// Wird so weit gescrollt, hat sich Clippy vom Feld gelöst und verschwindet
+// Clippy is fixed to the viewport, so after scrolling this far he no longer sits on the field and hides.
 const MAX_SCROLL_PX = 80;
 const TEXT =
   'Es sieht so aus, als hättest du nur einen Ort eingegeben. ' +
@@ -25,7 +23,7 @@ const TEXT =
 
 let agent = null;
 let gestartet = false;
-// Wird während des Ladens auf false gesetzt, wenn Clippy doch nicht mehr erscheinen soll
+// Cleared by versteckeClippy while the scripts are still loading, so a late load gets discarded.
 let erwuenscht = false;
 let beiScroll = null;
 
@@ -41,14 +39,10 @@ function merkeGezeigt() {
   try {
     sessionStorage.setItem(SCHLUESSEL, '1');
   } catch {
-    // ohne Speicher erscheint Clippy höchstens einmal pro Seitenaufruf
+    // Without storage, the gestartet flag still limits Clippy to once per page load.
   }
 }
 
-/**
- * Zeigt Clippy am Eingabefeld mit dem Hinweis auf die genaue Adresse.
- * @param {HTMLElement} feld Eingabefeld des Veranstaltungsorts
- */
 export async function zeigeAdressTipp(feld) {
   if (gestartet || schonGezeigt() || !istDesktop() || !mitMaus() || reduzierteBewegung()) return;
   gestartet = true;
@@ -57,7 +51,7 @@ export async function zeigeAdressTipp(feld) {
 
   let geladen;
   try {
-    // Alle drei Dateien gleichzeitig anfordern statt nacheinander
+    // Start all three imports in parallel instead of awaiting them one after another.
     const [bibliothek, daten, karte] = [
       import(`${BASIS}index.mjs`),
       import(`${BASIS}agents/clippy/agent.mjs`),
@@ -67,11 +61,11 @@ export async function zeigeAdressTipp(feld) {
     geladen = await initAgent({
       agent: () => daten,
       map: () => karte,
-      // stumm: keine Töne laden und abspielen
+      // Muted: this stub keeps clippyjs from loading or playing any sounds.
       sound: async () => ({ default: {} }),
     });
   } catch {
-    // CDN nicht erreichbar oder Prüfsumme falsch: dann eben ohne Clippy
+    // CDN unreachable or integrity check failed: carry on without Clippy.
     return;
   }
   if (!erwuenscht) {
@@ -80,9 +74,8 @@ export async function zeigeAdressTipp(feld) {
   }
   agent = geladen;
 
-  // Oben rechts auf dem Feld sitzend, leicht überlappend und noch in der linken Spalte.
-  // Clippy ist fest im Fenster positioniert, deshalb verschwindet er beim Scrollen.
-  // Nach unten höchstens bis zur Oberkante des Knopfs zum Leeren, damit er klickbar bleibt.
+  // Sit on the top right corner of the field, overlapping slightly but staying within the left
+  // column. His lower edge stops at the top of the clear button so that button stays clickable.
   const r = feld.getBoundingClientRect();
   const knopf = feld.parentElement.querySelector('.feld-leeren')?.getBoundingClientRect();
   const unten = knopf?.height ? Math.min(r.top + UEBERLAPPUNG.y, knopf.top) : r.top + UEBERLAPPUNG.y;
@@ -96,7 +89,6 @@ export async function zeigeAdressTipp(feld) {
   window.setTimeout(versteckeClippy, SICHTBAR_MS);
 }
 
-/** Lässt Clippy verschwinden, etwa wenn das Feld erneut bearbeitet wird. */
 export function versteckeClippy() {
   erwuenscht = false;
   if (beiScroll) window.removeEventListener('scroll', beiScroll);

@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { bereiteVor, sucheHochschulen, alsVorschlag } from '../assets/js/geo/hochschulsuche.js';
 
-// Kleines, festes Verzeichnis, damit die Tests nicht vom erzeugten Datensatz abhängen
+// Small fixed list so the tests do not depend on the generated data
 const LISTE = [
   { name: 'Universität Hamburg', kurz: 'UHH', aliase: ['Uni Hamburg'], orte: ['Hamburg'], anschrift: 'Edmund-Siemers-Allee 1, 20146 Hamburg', lat: 53.563, lon: 9.988, hrk: true, studierende: 43957 },
   { name: 'Hochschule für Angewandte Wissenschaften Hamburg', kurz: null, aliase: ['HAW Hamburg'], orte: ['Hamburg'], anschrift: 'Alexanderstraße 1, 20099 Hamburg', lat: 53.555, lon: 10.018, hrk: true, studierende: 17125 },

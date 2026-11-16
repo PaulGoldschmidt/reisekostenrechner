@@ -1,11 +1,10 @@
-// Fahrtkostenzuschuss zu Bildungsveranstaltungen der Studienstiftung.
-// Grundlage: Merkblatt "Fahrtkostenzuschüsse zu Bildungsveranstaltungen der
-// Studienstiftung", gültig ab Juni 2023, zuletzt aktualisiert Dezember 2025.
+// Travel subsidy for Studienstiftung events (Veranstaltungen).
+// Source: Merkblatt "Fahrtkostenzuschüsse zu Bildungsveranstaltungen der
+// Studienstiftung", valid since June 2023, last updated December 2025.
 
 import { euro, milli } from './geld.js';
 
 export const VERANSTALTUNG = Object.freeze({
-  // Innerdeutsche Strecken mit einfacher Distanz unter 100 km: kein Zuschuss.
   mindestKmEinfachInland: 100,
   bahnProKm: 0.1,
   bahnDeckelInland: 80,
@@ -23,7 +22,6 @@ export const VERANSTALTUNG = Object.freeze({
   }),
 });
 
-/** Kilometersatz in Euro für ein Auto mit der angegebenen Zahl an Mitfahrenden. */
 export function autoSatzProKm(mitfahrende) {
   const n = Math.max(0, Math.floor(mitfahrende));
   const zehntelcent =
@@ -34,16 +32,14 @@ export function autoSatzProKm(mitfahrende) {
 }
 
 /**
- * Berechnet alle Verkehrsmittel für eine Veranstaltung.
- *
  * @param {object} p
- * @param {number} p.kmEinfach         einfache Strecke in km (Pkw-Strecke, sonst Luftlinie)
- * @param {boolean} p.ausland          Reise im, ins oder aus dem Ausland
- * @param {boolean} p.innereuropaeisch beide Orte liegen in Europa
- * @param {boolean} p.landweg          es gibt eine Straßenverbindung
- * @param {number} [p.mitfahrende]     Mitfahrende im Auto (ohne fahrende Person)
- * @param {boolean} [p.bahnUeber12h]   einfache Bahn/Bus-Anreise dauert länger als 12 h
- * @param {number|null} [p.aufenthaltTage] Tage vor Ort, falls bekannt
+ * @param {number} p.kmEinfach         one-way distance in km (by road, otherwise straight-line)
+ * @param {boolean} p.ausland          trip within, to or from a country other than Germany
+ * @param {boolean} p.innereuropaeisch both places are in Europe
+ * @param {boolean} p.landweg          a road connection exists
+ * @param {number} [p.mitfahrende]     passengers in the car, not counting the driver
+ * @param {boolean} [p.bahnUeber12h]   the one-way journey by train or bus takes longer than 12 h
+ * @param {number|null} [p.aufenthaltTage] days at the event location, null if unknown
  */
 export function berechneVeranstaltung({
   kmEinfach,
@@ -60,7 +56,6 @@ export function berechneVeranstaltung({
   const unterMindestdistanz = !ausland && kmEinfachGerundet < V.mindestKmEinfachInland;
   const personen = 1 + Math.max(0, Math.floor(mitfahrende));
 
-  // Bahn/Bus
   const bahnRoh = milli(V.bahnProKm) * kmGesamt;
   const bahnDeckel = ausland ? null : milli(V.bahnDeckelInland);
   const bahnMilli = unterMindestdistanz ? 0 : bahnDeckel === null ? bahnRoh : Math.min(bahnRoh, bahnDeckel);
@@ -72,7 +67,6 @@ export function berechneVeranstaltung({
     gedeckelt: !unterMindestdistanz && bahnDeckel !== null && bahnRoh > bahnDeckel,
   };
 
-  // Auto
   const satz = autoSatzProKm(mitfahrende);
   const autoRoh = milli(satz) * kmGesamt;
   const autoDeckel = ausland ? null : milli(V.autoDeckelInlandProPerson) * personen;
@@ -87,7 +81,7 @@ export function berechneVeranstaltung({
     gedeckelt: !unterMindestdistanz && autoDeckel !== null && autoRoh > autoDeckel,
   };
 
-  // Fahrrad / zu Fuß: nur Übernachtungskosten
+  // Cycling or walking: only accommodation costs are subsidised.
   const rad = ausland
     ? {
         verfuegbar: landweg,
@@ -102,7 +96,6 @@ export function berechneVeranstaltung({
         eineNacht: unterMindestdistanz ? 0 : V.uebernachtungInland.eineNacht,
       };
 
-  // Flugzeug: im Inland nie, im Ausland nur unter Bedingungen
   const flugSaetze = innereuropaeisch ? V.flug.innereuropaeisch : V.flug.aussereuropaeisch;
   const mindestTage = Math.ceil(kmEinfachGerundet / V.flug.kmProTag);
   let flugStatus;
@@ -135,7 +128,7 @@ export function berechneVeranstaltung({
     auto,
     rad,
     flug,
-    // Höchster Fahrtkostenzuschuss (Übernachtungskosten beim Fahrrad zählen nicht dazu)
+    // Accommodation costs for cycling are not a travel subsidy, so rad is left out.
     hoechsterZuschuss: Math.max(bahn.betrag, auto.betrag, flug.mitKompensation),
   };
 }

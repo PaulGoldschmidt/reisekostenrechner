@@ -1,14 +1,7 @@
-// Ortssuche über Photon (komoot), basierend auf OpenStreetMap-Daten.
-// Photon ist für die Suche während der Eingabe gedacht; Nominatim erlaubt das nicht.
-//
-// Zwei Arten von Anfragen:
-// - Orte ("Leipzig"): nur Städte, Dörfer und Ortsteile
-// - Adressen ("Jägerstraße 22, Berlin"): sobald eine Hausnummer oder ein Straßenwort vorkommt
-
+// Photon (komoot) allows search-as-you-type; Nominatim's usage policy does not.
 export const PHOTON_URL = 'https://photon.komoot.io/api/';
 const MAX_VORSCHLAEGE = 6;
 
-// Nur Orte, keine Straßen, Gebäude oder Verwaltungsgrenzen.
 const ORTSARTEN = new Set([
   'city', 'town', 'village', 'hamlet', 'municipality', 'borough',
   'suburb', 'quarter', 'locality', 'island', 'islet',
@@ -16,12 +9,11 @@ const ORTSARTEN = new Set([
 
 const STRASSENWORT = /(stra(ss|ß)e|str\.|weg|platz|allee|gasse|ring|damm|ufer|chaussee|steig|pfad|promenade)\b/i;
 
-/** Ob eine Eingabe wie eine Adresse aussieht. */
 export function istAdresse(anfrage) {
   return /\d/.test(anfrage) || STRASSENWORT.test(anfrage);
 }
 
-/** Ortsvorschlag, z. B. "Hattingen" mit Zusatz "Nordrhein-Westfalen, Deutschland". */
+/** Place suggestion from Photon feature properties, e.g. "Hattingen" with zusatz "Nordrhein-Westfalen, Deutschland". */
 export function ortAusPhoton(p, lon, lat) {
   if (!ORTSARTEN.has(p.osm_value) || !p.countrycode || !p.name) return null;
   const zusatz = [];
@@ -40,7 +32,7 @@ export function ortAusPhoton(p, lon, lat) {
   };
 }
 
-/** Adressvorschlag, z. B. "Jägerstraße 22" mit Zusatz "10117 Berlin". */
+/** Address suggestion from Photon feature properties, e.g. "Jägerstraße 22" with zusatz "10117 Berlin". */
 export function adresseAusPhoton(p, lon, lat) {
   if (!p.countrycode) return null;
   const strasse = p.type === 'street' ? p.name : [p.street, p.housenumber].filter(Boolean).join(' ');
@@ -64,7 +56,7 @@ export function adresseAusPhoton(p, lon, lat) {
 /**
  * @param {string} anfrage
  * @param {{signal?: AbortSignal}} [optionen]
- * @returns {Promise<Array<{art: string, titel: string, zusatz: string, name: string, label: string,
+ * @returns {Promise<Array<{art: 'ort'|'adresse', titel: string, zusatz: string, name: string, label: string,
  *                          lat: number, lon: number, land: string}>>}
  */
 export async function sucheOrte(anfrage, { signal } = {}) {
@@ -82,7 +74,7 @@ export async function sucheOrte(anfrage, { signal } = {}) {
   } else {
     url.searchParams.set('osm_tag', 'place');
   }
-  // Leichte Bevorzugung von Orten in Deutschland
+  // Slightly prefer results near the center of Germany
   url.searchParams.set('lat', '51.1');
   url.searchParams.set('lon', '10.4');
   url.searchParams.set('location_bias_scale', '0.3');

@@ -1,5 +1,3 @@
-// Prüft das erzeugte Hochschulverzeichnis (assets/js/data/hochschulen.js).
-
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { HOCHSCHULEN } from '../assets/js/data/hochschulen.js';

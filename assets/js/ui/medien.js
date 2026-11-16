@@ -1,6 +1,4 @@
-// Gemeinsame Media Queries für Karte, Clippy und Konfetti.
-// Das Desktop-Layout in style.css nutzt denselben Wert (min-width: 1024px).
-
+// Same breakpoint as the desktop layout in style.css (@media (min-width: 1024px)).
 export const DESKTOP = '(min-width: 1024px)';
 
 const passt = (abfrage) => window.matchMedia(abfrage).matches;
