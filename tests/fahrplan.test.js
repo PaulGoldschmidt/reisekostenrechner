@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { stichtag, schnellsteStunden } from '../assets/js/geo/fahrplan.js';
+import { stichtag, schnellsteAus, ansichtLink } from '../assets/js/geo/fahrplan.js';
 import { ausserhalbBahnRaum } from '../assets/js/geo/bahnraum.js';
 import { bestimmeGebiet } from '../assets/js/geo/gebiet.js';
 
@@ -14,14 +14,24 @@ test('Stichtag ist ein Mittwoch mindestens zwei Tage voraus, 6 Uhr UTC', () => {
 test('Schnellste Verbindung ignoriert reine Fußwege', () => {
   const antwort = {
     itineraries: [
-      { duration: 50760, legs: [{ mode: 'WALK' }, { mode: 'HIGHSPEED_RAIL' }, { mode: 'WALK' }] },
-      { duration: 25560, legs: [{ mode: 'HIGHSPEED_RAIL' }, { mode: 'BUS' }] },
-      { duration: 3600, legs: [{ mode: 'WALK' }] },
+      { id: 'lang', duration: 50760, legs: [{ mode: 'WALK' }, { mode: 'HIGHSPEED_RAIL' }, { mode: 'WALK' }] },
+      { id: 'schnell', duration: 25560, legs: [{ mode: 'HIGHSPEED_RAIL' }, { mode: 'BUS' }] },
+      { id: 'zu-fuss', duration: 3600, legs: [{ mode: 'WALK' }] },
     ],
   };
-  assert.equal(schnellsteStunden(antwort), 7.1);
-  assert.equal(schnellsteStunden({ itineraries: [] }), null);
-  assert.equal(schnellsteStunden({}), null);
+  assert.equal(schnellsteAus(antwort).id, 'schnell');
+  assert.equal(schnellsteAus({ itineraries: [] }), null);
+  assert.equal(schnellsteAus({}), null);
+});
+
+test('Link auf die Verbindung bei Transitous, mit Suche als Rückfall', () => {
+  const anfrage = { fromPlace: '51.3,12.4', toPlace: '50.9,4.4', time: '2026-11-25T06:00:00.000Z' };
+  const link = new URL(ansichtLink({ id: 'Ab/c+d=' }, anfrage, 'Leipzig', 'Brüssel'));
+  assert.equal(link.origin + link.pathname, 'https://api.transitous.org/');
+  assert.equal(link.searchParams.get('itineraryId'), 'Ab/c+d=');
+  assert.equal(link.searchParams.get('fromPlace'), '51.3,12.4');
+  assert.equal(link.searchParams.get('toName'), 'Brüssel');
+  assert.equal(link.searchParams.get('time'), '2026-11-25T06:00:00.000Z');
 });
 
 test('Interrail- und Fernbus-Raum', () => {

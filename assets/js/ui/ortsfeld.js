@@ -7,6 +7,8 @@ import { sucheOrte } from '../geo/suche.js';
 import { h } from './dom.js';
 
 const VERZOEGERUNG_MS = 250;
+// Dauer einer Umdrehung des Ladekreises, wie in style.css (.lade-kreis)
+const DREHUNG_MS = 800;
 // Neben lokalen Treffern nur wenige Orte zeigen, damit die Liste kurz bleibt
 const MAX_ENTFERNTE_NEBEN_LOKALEN = 3;
 
@@ -35,6 +37,14 @@ export class Ortsfeld {
     this.timer = null;
     this.abbruch = null;
     this.nummer = 0;
+    // Läuft gerade eine Suche bei der Ortssuche (oder steht sie unmittelbar bevor)?
+    this.sucht = false;
+
+    // Knopf zum Leeren des Feldes. Sichtbar ist er per CSS, sobald Text im Feld steht
+    // (der Platzhalter ist dann nicht zu sehen).
+    eingabe.after(
+      h('button', { type: 'button', class: 'feld-leeren', 'aria-label': 'Eingabe löschen', onclick: () => this.loesche() }, '×'),
+    );
 
     // Lokale Treffer (Hochschulnamen) sind lang: Liste darf breiter als das Feld sein
     if (lokal) liste.classList.add('vorschlaege-breit');
@@ -61,6 +71,13 @@ export class Ortsfeld {
     this.eingabe.value = ort ? ort.label : '';
   }
 
+  /** Feld leeren wie beim Löschen per Tastatur und den Fokus zurückgeben. */
+  loesche() {
+    this.eingabe.value = '';
+    this.beiEingabe();
+    this.eingabe.focus();
+  }
+
   /** Laufende Suche abbrechen und Ergebnisse der Ortssuche verwerfen. */
   abbrechen() {
     this.nummer++;
@@ -69,6 +86,7 @@ export class Ortsfeld {
     this.entfernte = [];
     this.meldung = null;
     this.aktiv = -1;
+    this.sucht = false;
   }
 
   /** Ersten Vorschlag markieren, solange noch keiner gewählt ist. */
@@ -90,6 +108,7 @@ export class Ortsfeld {
       return;
     }
     this.timer = setTimeout(() => this.suche(text), VERZOEGERUNG_MS);
+    this.sucht = true;
 
     if (this.lokal) {
       const lokale = await this.lokal(text);
@@ -97,8 +116,9 @@ export class Ortsfeld {
       if (nummer !== this.nummer) return;
       this.lokale = lokale;
       this.markiereErsten();
-      if (this.lokale.length) this.zeichne();
     }
+    // Sofort zeigen, dass gesucht wird (lokale Treffer stehen schon darüber)
+    this.zeichne();
   }
 
   async suche(text) {
@@ -112,6 +132,7 @@ export class Ortsfeld {
       this.entfernte = [];
       this.meldung = 'Die Ortssuche ist gerade nicht erreichbar.';
     }
+    this.sucht = false;
     this.markiereErsten();
     this.zeichne();
   }
@@ -136,6 +157,16 @@ export class Ortsfeld {
         ort.zusatz ? h('span', { class: 'vorschlag-zusatz' }, ort.zusatz) : null,
       );
 
+    // Statuszeile am Ende: läuft die Suche noch, mit Ladekreis. Die Verzögerung hält die
+    // Drehung beim Neuzeichnen an derselben Stelle, statt bei jedem Tastendruck neu zu beginnen.
+    const ladekreis = () =>
+      h('span', {
+        class: 'lade-kreis',
+        'aria-hidden': 'true',
+        style: `animation-delay: -${Math.round(performance.now() % DREHUNG_MS)}ms`,
+      });
+    const status = this.sucht ? [ladekreis(), 'Suche passende Orte …'] : this.meldung;
+
     const entfernte = this.sichtbareEntfernte;
     const mitGruppen = this.lokale.length > 0 && entfernte.length > 0;
     const eintraege = [
@@ -143,10 +174,11 @@ export class Ortsfeld {
       ...this.lokale.map((ort, i) => option(ort, i)),
       mitGruppen && gruppe('Orte und Adressen'),
       ...entfernte.map((ort, i) => option(ort, this.lokale.length + i)),
-      this.meldung && h('li', { class: 'vorschlag-meldung', role: 'presentation' }, this.meldung),
+      status && h('li', { class: 'vorschlag-meldung', role: 'presentation' }, status),
     ].filter(Boolean);
 
     this.liste.replaceChildren(...eintraege);
+    this.liste.setAttribute('aria-busy', String(this.sucht));
     if (this.aktiv >= 0) this.eingabe.setAttribute('aria-activedescendant', `${id}-${this.aktiv}`);
     else this.eingabe.removeAttribute('aria-activedescendant');
     if (document.activeElement === this.eingabe && eintraege.length) this.oeffnen();
